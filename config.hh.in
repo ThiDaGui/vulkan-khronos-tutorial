@@ -1,0 +1,5 @@
+#pragma once
+
+#include <filesystem>
+
+static std::filesystem::path shaderPath = "@SHADER_BINARY_DIR@";
