@@ -54,6 +54,7 @@ target_include_directories(drawTriangle PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(drawTriangle glfw Vulkan::Vulkan)
 
+add_subdirectory(src)
 
 #add_executable(CreateDebugUtilsMessenger CreateDebugUtilsMessenger.cpp)
 #
