@@ -7,9 +7,9 @@ find_package(glfw3 REQUIRED)
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 
 add_compile_options(
-        "$<$<CONFIG:Debug>:-Wall;-Wextra;-O0;-g;-fsanitize=address;-fsanitize=undefined>") #-Werror;
+        "$<$<CONFIG:Debug>:-Wall;-Wextra;-O0;-g>") #-Werror;
 
-	add_link_options("$<$<CONFIG:Debug>:-fsanitize=address;-fsanitize=undefined>")
+	add_link_options("$<$<CONFIG:Debug>:>")
 
 set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
