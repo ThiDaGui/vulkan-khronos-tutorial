@@ -24,11 +24,11 @@ const std::vector<const char *> deviceExtensions = {
     vk::KHRSwapchainExtensionName
 };
 
-VKAPI_ATTR VkBool32 VKAPI_CALL
-debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-              VkDebugUtilsMessageTypeFlagsEXT messageType,
-              VkDebugUtilsMessengerCallbackDataEXT const *pCallbackData,
-              void * /*pUserData*/)
+vk::Bool32 debugCallback(
+        vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        vk::DebugUtilsMessageTypeFlagsEXT messageType,
+        vk::DebugUtilsMessengerCallbackDataEXT const *pCallbackData,
+        void * /*pUserData*/)
 {
     std::ostringstream message;
     std::string prefix;
@@ -36,30 +36,22 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 
     message << "validation layer: ";
 
-    switch (messageType) {
-    case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
+    if (messageType | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation)
         message << "validation: ";
-        break;
-    case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
+    if (messageType | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral)
         message << "general: ";
-        break;
-    case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
+    if (messageType | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
         message << "performance: ";
-        break;
-
-    default:
-        break;
-    }
 
     message << pCallbackData->pMessage;
 
 #ifdef __linux__
     switch (messageSeverity) {
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+    case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
         prefix = "\x1B[33m";
         suffix = "\x1B[0m";
         break;
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+    case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
         prefix = "\x1B[31m";
         suffix = "\x1B[0m";
         break;
@@ -132,40 +124,21 @@ void HelloTriangleApplication::createInstance()
     std::vector<const char *> instanceExtensions =
         getRequiredInstanceExtensions();
 
-#ifdef NDEBUG
-    vk::InstanceCreateInfo instanceCreateInfo{ {},
-                                               &applicationInfo,
-                                               {},
-                                               {},
-                                               static_cast<uint32_t>(
-                                                   instanceExtensions.size()),
-                                               instanceExtensions.data() };
 
-#else
-    // Add validation layers to InstanceCreateInfo struct
+    auto instanceCreateInfo = vk::InstanceCreateInfo()
+            .setPApplicationInfo(&applicationInfo)
+            .setEnabledExtensionCount(static_cast<uint32_t >(instanceExtensions.size()))
+            .setPpEnabledExtensionNames(instanceExtensions.data());
 
-    vk::DebugUtilsMessengerCreateInfoEXT debugMessenger{
-        {},
-        vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
-            | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
-            | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
-        vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
-            | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation
-            | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance,
-        debugCallback
-    };
-
-    vk::InstanceCreateInfo instanceCreateInfo{
-        {},
-        &applicationInfo,
-        static_cast<uint32_t>(validationLayers.size()),
-        validationLayers.data(),
-        static_cast<uint32_t>(instanceExtensions.size()),
-        instanceExtensions.data(),
-        &debugMessenger
-    };
+#ifndef NDEBUG
+    instanceCreateInfo
+        .setEnabledLayerCount(static_cast<uint32_t >(validationLayers.size()))
+        .setPpEnabledLayerNames(validationLayers.data());
 #endif
+
     instance_ = vk::createInstance(instanceCreateInfo);
+    loaderDynamic_ = vk::detail::DispatchLoaderDynamic(instance_, vkGetInstanceProcAddr);
+
 }
 
 void HelloTriangleApplication::setupDebugMessenger()
@@ -176,9 +149,17 @@ void HelloTriangleApplication::setupDebugMessenger()
         | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
     };
 
-    vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags{};
+    vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags{
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+    };
 
-    debugMessenger_ = instance_.createDebugUtilsMessengerEXT(
-        vk::DebugUtilsMessengerCreateInfoEXT{
-            {}, messageSeverityFlags, messageTypeFlags, nullptr });
+
+    auto messengerCreateInfo = vk::DebugUtilsMessengerCreateInfoEXT()
+            .setMessageSeverity(messageSeverityFlags)
+            .setMessageType(messageTypeFlags)
+            .setPfnUserCallback(debugCallback);
+
+    debugMessenger_ = instance_.createDebugUtilsMessengerEXT(messengerCreateInfo, nullptr, loaderDynamic_);
 }

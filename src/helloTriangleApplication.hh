@@ -9,6 +9,7 @@ private:
     GLFWwindow *window_;
     vk::Instance instance_;
     vk::DebugUtilsMessengerEXT debugMessenger_;
+    vk::detail::DispatchLoaderDynamic loaderDynamic_;
 
 public:
     HelloTriangleApplication();
