@@ -67,6 +67,7 @@ vk::Bool32 debugCallback(
 }
 
 HelloTriangleApplication::HelloTriangleApplication()
+    : window_{nullptr}
 {
     initWindow();
     initVulkan();
