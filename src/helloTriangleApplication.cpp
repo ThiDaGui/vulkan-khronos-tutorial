@@ -24,11 +24,11 @@ const std::vector<const char *> deviceExtensions = {
     vk::KHRSwapchainExtensionName
 };
 
-vk::Bool32 debugCallback(
-        vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-        vk::DebugUtilsMessageTypeFlagsEXT messageType,
-        vk::DebugUtilsMessengerCallbackDataEXT const *pCallbackData,
-        void * /*pUserData*/)
+VKAPI_ATTR vk::Bool32 VKAPI_CALL
+debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+              vk::DebugUtilsMessageTypeFlagsEXT messageType,
+              vk::DebugUtilsMessengerCallbackDataEXT const *pCallbackData,
+              void * /*pUserData*/)
 {
     std::ostringstream message;
     std::string prefix;
