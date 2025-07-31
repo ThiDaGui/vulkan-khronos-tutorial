@@ -44,7 +44,9 @@ target_include_directories(drawTriangle PRIVATE
 target_compile_options(drawTriangle PRIVATE
         "$<$<CONFIG:Debug>:-Wall;-Wextra;-O0;-g>") #-Werror;
 
-set_target_properties(drawTriangle PROPERTIES CXX_STANDARD 17)
+set_target_properties(drawTriangle PROPERTIES
+        CXX_STANDARD 17
+)
 
 target_link_libraries(drawTriangle glfw Vulkan::Vulkan)
 
