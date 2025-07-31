@@ -1,20 +1,19 @@
 #include "helloTriangleApplication.hh"
 
+import vulkan_hpp;
+
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <cstdint>
+
+#include <cstring>
 #include <iostream>
-#include <stdexcept>
-#include <vector>
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_funcs.hpp>
-#include <vulkan/vulkan_handles.hpp>
-#include <vulkan/vulkan_structs.hpp>
+#include <bits/ranges_algo.h>
+#include <sstream>
 
 #include "vulkanUtils.hh"
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
+constexpr uint32_t WIDTH = 800;
+constexpr uint32_t HEIGHT = 600;
 
 const std::vector<const char *> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -24,13 +23,14 @@ const std::vector<const char *> deviceExtensions = {
     vk::KHRSwapchainExtensionName
 };
 
-VKAPI_ATTR vk::Bool32 VKAPI_CALL
+/*
+[[maybe_unused]] VKAPI_ATTR vk::Bool32 VKAPI_CALL
 debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
               vk::DebugUtilsMessageTypeFlagsEXT messageType,
               vk::DebugUtilsMessengerCallbackDataEXT const *pCallbackData,
-              void * /*pUserData*/)
+              void * pUserData)
 {
-    std::ostringstream message;
+    std::ostringstream message{};
     std::string prefix;
     std::string suffix;
 
@@ -65,12 +65,18 @@ debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 
     return VK_FALSE;
 }
+*/
 
 HelloTriangleApplication::HelloTriangleApplication()
     : window_{nullptr}
 {
     initWindow();
     initVulkan();
+}
+
+HelloTriangleApplication::~HelloTriangleApplication()
+{
+    cleanup();
 }
 
 void HelloTriangleApplication::run()
@@ -88,79 +94,50 @@ void HelloTriangleApplication::initWindow()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    if ((window_ = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr))
-        == nullptr)
+    if (nullptr == (window_ = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr)))
         throw std::runtime_error("failed to create GLFW window!");
 }
 
 void HelloTriangleApplication::initVulkan()
 {
     createInstance();
+}
 
-#ifndef NDEBUG
-    setupDebugMessenger();
-#endif
+void HelloTriangleApplication::cleanup()
+{
+    glfwDestroyWindow(window_);
+
+    glfwTerminate();
 }
 
 void HelloTriangleApplication::createInstance()
 {
-#ifndef NDEBUG
-    // check for validation layers if requested
+    constexpr vk::ApplicationInfo applicationInfo{
+        .pApplicationName = "Hello Triangle",
+        .applicationVersion = vk::makeVersion(1, 0, 0),
+        .pEngineName = "No Engine",
+        .engineVersion = vk::makeVersion(1, 0, 0),
+        .apiVersion = vk::ApiVersion14,
+    };
+
+    auto requiredExtensions = getRequiredInstanceExtensions();
+    auto extensionProperties = context_.enumerateInstanceExtensionProperties();
+
+    for (uint32_t i = 0; i < requiredExtensions.size(); ++i)
     {
-        std::cout << "Checking for validation layers...";
-        if (!checkValidationLayerSupport(validationLayers))
-            throw std::runtime_error(
-                "validation layers requested, but not available!");
-        std::cout << "Done\n";
+        if (std::ranges::none_of(extensionProperties,
+                                 [extension = requiredExtensions[i]](auto const& extensionProperty)
+                                 { return std::strcmp(extensionProperty.extensionName, extension) == 0; }))
+        {
+            throw std::runtime_error("Required GLFW extension not supported: " + std::string(requiredExtensions[i]));
+        }
     }
-#endif // NDEBUG
 
-    // create ApplicationInfo struct
-    vk::ApplicationInfo applicationInfo{ "Hello Triangle",
-                                         vk::makeApiVersion(0, 1, 0, 0),
-                                         "No Engine",
-                                         vk::makeApiVersion(0, 1, 0, 0),
-                                         vk::ApiVersion10 };
-
-    std::vector<const char *> instanceExtensions =
-        getRequiredInstanceExtensions();
-
-
-    auto instanceCreateInfo = vk::InstanceCreateInfo()
-            .setPApplicationInfo(&applicationInfo)
-            .setEnabledExtensionCount(static_cast<uint32_t >(instanceExtensions.size()))
-            .setPpEnabledExtensionNames(instanceExtensions.data());
-
-#ifndef NDEBUG
-    instanceCreateInfo
-        .setEnabledLayerCount(static_cast<uint32_t >(validationLayers.size()))
-        .setPpEnabledLayerNames(validationLayers.data());
-#endif
-
-    instance_ = vk::createInstance(instanceCreateInfo);
-    loaderDynamic_ = vk::detail::DispatchLoaderDynamic(instance_, vkGetInstanceProcAddr);
-
-}
-
-void HelloTriangleApplication::setupDebugMessenger()
-{
-    vk::DebugUtilsMessageSeverityFlagsEXT messageSeverityFlags{
-        vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
-        | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
-        | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
+    vk::InstanceCreateInfo createInfo{
+            .pApplicationInfo = &applicationInfo,
+            .enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size()),
+            .ppEnabledExtensionNames = requiredExtensions.data(),
     };
 
-    vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags{
-            vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
-            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
-    };
-
-
-    auto messengerCreateInfo = vk::DebugUtilsMessengerCreateInfoEXT()
-            .setMessageSeverity(messageSeverityFlags)
-            .setMessageType(messageTypeFlags)
-            .setPfnUserCallback(debugCallback);
-
-    debugMessenger_ = instance_.createDebugUtilsMessengerEXT(messengerCreateInfo, nullptr, loaderDynamic_);
+    instance_ = vk::raii::Instance(context_, createInfo);
 }
