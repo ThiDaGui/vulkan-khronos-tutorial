@@ -4,9 +4,34 @@
 
 #include "helloTriangleApplication.hh"
 
-int main(void) {
+class GLFWWindowHandle {
+    GLFWwindow *window = nullptr;
+public:
+    GLFWWindowHandle() {
+        if (!glfwInit())
+            throw std::runtime_error("failed to initialize GLFW!");
+
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+        if (nullptr == (window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr)))
+            throw std::runtime_error("failed to create GLFW window!");
+    }
+
+    ~GLFWWindowHandle() {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
+
+[[nodiscard]] GLFWwindow * get_window() const {
+        return window;
+    }
+};
+
+int main(int argc, char *argv[]) {
+    GLFWWindowHandle window_handle{};
     try {
-        HelloTriangleApplication app{};
+        HelloTriangleApplicationCpp app{window_handle.get_window()};
         app.run();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
