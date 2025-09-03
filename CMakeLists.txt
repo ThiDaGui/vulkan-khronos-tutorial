@@ -4,50 +4,29 @@ project(vulkan_khronos_tutorial CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 find_package(glfw3 REQUIRED)
-find_package(Vulkan REQUIRED COMPONENTS glslc)
+find_package(Vulkan REQUIRED COMPONENTS slangc)
 
 set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
 set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
 file(MAKE_DIRECTORY ${SHADER_BINARY_DIR})
 
-function(add_spirv_shader INPUT_SHADER OUTPUT_SHADER)
+function(add_slang_shader TARGET)
+    cmake_parse_arguments("SHADER" "" "" "SOURCES" ${ARGN})
+    set(ENTRY_POINTS -entry vertMain -entry fragMain)
+    string(JOIN "." TARGET_OUTPUT_NAME "${TARGET}" "spv")
     add_custom_command(
-            OUTPUT ${OUTPUT_SHADER}
-            COMMAND Vulkan::glslc ${INPUT_SHADER} -o ${OUTPUT_SHADER}
-            DEPENDS ${INPUT_SHADER}
+            OUTPUT ${SHADER_BINARY_DIR}/${TARGET_OUTPUT_NAME}
+            COMMAND Vulkan::slangc -target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o ${SHADER_BINARY_DIR}/${TARGET_OUTPUT_NAME} -- ${SHADER_SOURCES}
+            DEPENDS ${SHADER_SOURCES}
+            COMMENT "Compiling slang shader ${TARGET}"
+            VERBATIM
     )
+    add_custom_target(${TARGET} DEPENDS ${SHADER_BINARY_DIR}/${TARGET_OUTPUT_NAME})
 endfunction()
 
 configure_file(config.hh.in config.hh @ONLY)
 
-add_spirv_shader(
-        ${SHADER_SOURCE_DIR}/triangle.vert ${SHADER_BINARY_DIR}/triangle_vert.spv)
-add_spirv_shader(
-        ${SHADER_SOURCE_DIR}/triangle.frag ${SHADER_BINARY_DIR}/triangle_frag.spv)
-
-add_custom_target(shaders
-        DEPENDS
-        ${SHADER_BINARY_DIR}/triangle_frag.spv
-        ${SHADER_BINARY_DIR}/triangle_vert.spv
-)
-
-add_executable(drawTriangle main.cpp)
-
-add_dependencies(drawTriangle shaders)
-
-target_include_directories(drawTriangle PRIVATE
-        ${CMAKE_CURRENT_BINARY_DIR}
-        ${Vulkan_INCLUDE_DIR}
-)
-
-target_compile_options(drawTriangle PRIVATE
-        "$<$<CONFIG:Debug>:-Wall;-Wextra;-O0;-g>") #-Werror;
-
-set_target_properties(drawTriangle PROPERTIES
-        CXX_STANDARD 17
-)
-
-target_link_libraries(drawTriangle glfw Vulkan::Vulkan)
+add_slang_shader(triangle_slang SOURCES ${SHADER_SOURCE_DIR}/triangle.slang)
 
 add_subdirectory(src)

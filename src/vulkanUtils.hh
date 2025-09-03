@@ -2,7 +2,7 @@
 
 import vulkan_hpp;
 
-#include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <vector>
 
@@ -28,3 +28,14 @@ vk::SurfaceFormatKHR chooseSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>
 vk::PresentModeKHR choosePresentMode(const std::vector<vk::PresentModeKHR>& available_present_modes);
 
 std::uint32_t chooseMinImageCount(const vk::SurfaceCapabilitiesKHR& surface_capabilities);
+
+std::vector<char> readShader(const std::filesystem::path &file_path);
+
+void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
+                           const vk::Image &image,
+                           vk::ImageLayout old_layout,
+                           vk::ImageLayout new_layout,
+                           vk::AccessFlags2 src_access_mask,
+                           vk::AccessFlags2 dst_access_mask,
+                           vk::PipelineStageFlags2 src_stage_mask,
+                           vk::PipelineStageFlags2 dst_stage_mask);

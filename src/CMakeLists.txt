@@ -1,3 +1,4 @@
+
 add_library(VulkanCppModule)
 add_library(Vulkan::cppm ALIAS VulkanCppModule)
 
@@ -24,9 +25,6 @@ target_sources(VulkanCppModule PUBLIC
         FILES "${Vulkan_INCLUDE_DIR}/vulkan/vulkan.cppm"
 )
 
-find_package(glfw3 REQUIRED)
-
-
 add_executable(drawTriangleCpp
         helloTriangleApplication.cpp
         vulkanUtils.cpp
@@ -38,6 +36,7 @@ add_executable(drawTriangleCpp
 
 target_include_directories(drawTriangleCpp PRIVATE
         "${Vulkan_INCLUDE_DIR}"
+        "${CMAKE_BINARY_DIR}"
 )
 
 set_target_properties(drawTriangleCpp PROPERTIES
@@ -49,3 +48,4 @@ target_link_libraries(drawTriangleCpp PRIVATE
         glfw
 )
 
+add_dependencies(drawTriangleCpp triangle_slang)

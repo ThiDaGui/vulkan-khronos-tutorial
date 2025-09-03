@@ -365,6 +365,14 @@ if(glslangValidator IN_LIST Vulkan_FIND_COMPONENTS)
     )
     mark_as_advanced(Vulkan_GLSLANG_VALIDATOR_EXECUTABLE)
 endif()
+if(slangc IN_LIST Vulkan_FIND_COMPONENTS)
+    find_program(Vulkan_SLANGC_EXECUTABLE
+            NAMES slangc
+            HINTS
+            ${_Vulkan_hint_executable_search_paths}
+    )
+    mark_as_advanced(Vulkan_SLANGC_EXECUTABLE)
+endif()
 if(glslang IN_LIST Vulkan_FIND_COMPONENTS)
     find_library(Vulkan_glslang-spirv_LIBRARY
             NAMES SPIRV
@@ -533,6 +541,12 @@ else()
     set(Vulkan_glslangValidator_FOUND FALSE)
 endif()
 
+if (Vulkan_SLANGC_EXECUTABLE)
+    set(Vulkan_slangc_FOUND TRUE)
+else ()
+    set(Vulkan_slangc_FOUND FALSE)
+endif()
+
 if (Vulkan_dxc_EXECUTABLE)
     set(Vulkan_dxc_exe_FOUND TRUE)
 else()
@@ -670,6 +684,11 @@ endif()
 if(Vulkan_FOUND AND Vulkan_GLSLANG_VALIDATOR_EXECUTABLE AND NOT TARGET Vulkan::glslangValidator)
     add_executable(Vulkan::glslangValidator IMPORTED)
     set_property(TARGET Vulkan::glslangValidator PROPERTY IMPORTED_LOCATION "${Vulkan_GLSLANG_VALIDATOR_EXECUTABLE}")
+endif()
+
+if(Vulkan_FOUND AND Vulkan_SLANGC_EXECUTABLE AND NOT TARGET Vulkan::slangc)
+    add_executable(Vulkan::slangc IMPORTED)
+    set_property(TARGET Vulkan::slangc PROPERTY IMPORTED_LOCATION "${Vulkan_SLANGC_EXECUTABLE}")
 endif()
 
 if(Vulkan_FOUND)

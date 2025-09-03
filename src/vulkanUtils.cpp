@@ -2,6 +2,8 @@ import vulkan_hpp;
 
 #include "vulkanUtils.hh"
 
+#include <filesystem>
+#include <fstream>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
@@ -73,7 +75,10 @@ void listRequiredDeviceExtensions(const std::vector<const char *> &device_extens
 
 std::vector<const char *> getRequiredDeviceExtensions() {
     static const std::vector<const char *> required_device_extensions{
-        vk::KHRSwapchainExtensionName
+        vk::KHRSwapchainExtensionName,
+        vk::KHRSpirv14ExtensionName,
+        vk::KHRSynchronization2ExtensionName,
+        vk::KHRCreateRenderpass2ExtensionName,
     };
 
 #ifndef NDEBUG
@@ -95,16 +100,17 @@ void listPhysicalDevices(const std::vector<vk::raii::PhysicalDevice> &physical_d
     }
 }
 
-vk::SurfaceFormatKHR chooseSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& available_surface_formats) {
-    for (const auto & available_surface_format: available_surface_formats) {
-        if (available_surface_format.format == vk::Format::eB8G8R8A8Srgb && available_surface_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+vk::SurfaceFormatKHR chooseSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &available_surface_formats) {
+    for (const auto &available_surface_format: available_surface_formats) {
+        if (available_surface_format.format == vk::Format::eB8G8R8A8Srgb && available_surface_format.colorSpace ==
+            vk::ColorSpaceKHR::eSrgbNonlinear)
             return available_surface_format;
     }
     return available_surface_formats[0];
 }
 
-vk::PresentModeKHR choosePresentMode(const std::vector<vk::PresentModeKHR>& available_present_modes) {
-    for (const auto & available_present_mode: available_present_modes) {
+vk::PresentModeKHR choosePresentMode(const std::vector<vk::PresentModeKHR> &available_present_modes) {
+    for (const auto &available_present_mode: available_present_modes) {
         if (available_present_mode == vk::PresentModeKHR::eMailbox)
             return available_present_mode;
     }
@@ -117,4 +123,54 @@ std::uint32_t chooseMinImageCount(const vk::SurfaceCapabilitiesKHR &surface_capa
     if (max_image_count > 0 && image_count > max_image_count)
         return max_image_count;
     return image_count;
+}
+
+std::vector<char> readShader(const std::filesystem::path &file_path) {
+    std::ifstream file{file_path, std::ios::ate | std::ios::binary};
+
+    if (!file.is_open())
+        throw std::runtime_error("Failed to open file " + file_path.string());
+
+    std::vector<char> buffer(file.tellg());
+
+    file.seekg(std::ios::beg);
+    file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+
+    file.close();
+    return buffer;
+}
+
+void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
+                           const vk::Image &image,
+                           vk::ImageLayout old_layout,
+                           vk::ImageLayout new_layout,
+                           vk::AccessFlags2 src_access_mask,
+                           vk::AccessFlags2 dst_access_mask,
+                           vk::PipelineStageFlags2 src_stage_mask,
+                           vk::PipelineStageFlags2 dst_stage_mask) {
+    vk::ImageMemoryBarrier2 barrier = {
+        .srcStageMask = src_stage_mask,
+        .srcAccessMask = src_access_mask,
+        .dstStageMask = dst_stage_mask,
+        .dstAccessMask = dst_access_mask,
+        .oldLayout = old_layout,
+        .newLayout = new_layout,
+        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .image = image,
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        }
+    };
+
+    const vk::DependencyInfo dependency_info = {
+        .dependencyFlags = {},
+        .imageMemoryBarrierCount = 1,
+        .pImageMemoryBarriers = &barrier,
+    };
+    command_buffer.pipelineBarrier2(dependency_info);
 }
