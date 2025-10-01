@@ -8,6 +8,8 @@ import vulkan_hpp;
 #include <iostream>
 #include <vector>
 
+#include "vulkan/vulkan_raii.hpp"
+
 void RequiredQueueFamilyIndices::Populate(const vk::raii::PhysicalDevice &device, const vk::raii::SurfaceKHR &surface) {
     const auto queues_family_properties = device.getQueueFamilyProperties();
 
@@ -142,12 +144,12 @@ std::vector<char> readShader(const std::filesystem::path &file_path) {
 
 void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
                            const vk::Image &image,
-                           vk::ImageLayout old_layout,
-                           vk::ImageLayout new_layout,
-                           vk::AccessFlags2 src_access_mask,
-                           vk::AccessFlags2 dst_access_mask,
-                           vk::PipelineStageFlags2 src_stage_mask,
-                           vk::PipelineStageFlags2 dst_stage_mask) {
+                           const vk::ImageLayout old_layout,
+                           const vk::ImageLayout new_layout,
+                           const vk::PipelineStageFlags2 src_stage_mask,
+                           const vk::AccessFlags2 src_access_mask,
+                           const vk::PipelineStageFlags2 dst_stage_mask,
+                           const vk::AccessFlags2 dst_access_mask) {
     vk::ImageMemoryBarrier2 barrier = {
         .srcStageMask = src_stage_mask,
         .srcAccessMask = src_access_mask,
@@ -173,4 +175,18 @@ void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
         .pImageMemoryBarriers = &barrier,
     };
     command_buffer.pipelineBarrier2(dependency_info);
+}
+
+uint32_t findMemoryTypeIndex(
+    const vk::PhysicalDeviceMemoryProperties &memory_properties,
+    const std::uint32_t memory_type_bits,
+    const vk::MemoryPropertyFlags property_flags)
+{
+    for (std::uint32_t i = 0; i < memory_properties.memoryTypeCount; i++) {
+        if (memory_type_bits & (1 << i)
+            && (memory_properties.memoryTypes[i].propertyFlags & property_flags) == property_flags)
+            return i;
+    }
+
+    throw std::runtime_error("Failed to find a suitable memory type!");
 }

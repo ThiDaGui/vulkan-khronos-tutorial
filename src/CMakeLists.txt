@@ -32,6 +32,9 @@ add_executable(drawTriangleCpp
 
         helloTriangleApplication.hh
         vulkanUtils.hh
+        vertex.cc
+        vertex.hh
+        stb_image.cc
 )
 
 target_include_directories(drawTriangleCpp PRIVATE

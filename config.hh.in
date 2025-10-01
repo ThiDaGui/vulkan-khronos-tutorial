@@ -3,3 +3,4 @@
 #include <filesystem>
 
 static std::filesystem::path shaderPath = "@SHADER_BINARY_DIR@";
+static std::filesystem::path dataPath = "@DATA_PATH@";
