@@ -88,6 +88,7 @@ private:
     vk::raii::Image texture_image_ = nullptr;
     vk::raii::DeviceMemory texture_image_memory_ = nullptr;
     vk::raii::ImageView texture_image_view_ = nullptr;
+    vk::raii::Sampler texture_image_sampler_ = nullptr;
 
 public:
     HelloTriangleApplicationCpp();
@@ -123,6 +124,7 @@ private:
 
     void createTextureImage();
     void createTextureImageView();
+    void createTextureImageSampler();
 
     void createVertexBuffer();
 
