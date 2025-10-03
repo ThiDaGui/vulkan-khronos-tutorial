@@ -10,6 +10,7 @@ import vulkan_hpp;
 #include <sstream>
 
 //glm
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -111,6 +112,8 @@ void HelloTriangleApplicationCpp::initVulkan() {
     createGraphicPipeline();
 
     createCommandPool();
+
+    createDepthBufferResources();
 
     createTextureImage();
     createTextureImageView();
@@ -348,6 +351,43 @@ void HelloTriangleApplicationCpp::createSwapchainImageView() {
     }
 }
 
+void HelloTriangleApplicationCpp::createDepthBufferResources() {
+    const vk::Format format = findDepthFormat(physical_device_);
+    createImage(
+        swapchain_extent_.width,
+        swapchain_extent_.height,
+        format,
+        vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        depth_buffer_,
+        depth_buffer_memory_
+        );
+
+    const vk::ImageViewCreateInfo image_view_create_info = {
+        .image = depth_buffer_,
+        .viewType = vk::ImageViewType::e2D,
+        .format = format,
+        .subresourceRange = {vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1}
+    };
+
+    depth_buffer_image_view_ = vk::raii::ImageView(device_, image_view_create_info);
+
+    const vk::raii::CommandBuffer command_buffer = beginTransientCommandBuffer();
+    transitionImageLayout(
+        command_buffer,
+        depth_buffer_,
+        format,
+        vk::ImageLayout::eUndefined,
+        vk::ImageLayout::eDepthStencilAttachmentOptimal,
+        vk::PipelineStageFlagBits2::eTopOfPipe,
+        {},
+        vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+        vk::AccessFlagBits2::eDepthStencilAttachmentRead
+        );
+    endTransientCommandBuffer(command_buffer);
+}
+
 void HelloTriangleApplicationCpp::createDescriptorSetLayout()
 {
     constexpr std::array<vk::DescriptorSetLayoutBinding, 2> layout_bindings{{
@@ -438,6 +478,12 @@ void HelloTriangleApplicationCpp::createGraphicPipeline() {
         .sampleShadingEnable = vk::False,
     };
 
+    constexpr vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info = {
+        .depthTestEnable = vk::True,
+        .depthWriteEnable = vk::True,
+        .depthCompareOp = vk::CompareOp::eLess
+    };
+
     static constexpr vk::PipelineColorBlendAttachmentState color_blend_attachment_state{
         .blendEnable = vk::False,
         .colorWriteMask = vk::ColorComponentFlagBits::eR |
@@ -464,6 +510,7 @@ void HelloTriangleApplicationCpp::createGraphicPipeline() {
     const vk::PipelineRenderingCreateInfo pipeline_rendering_create_info {
         .colorAttachmentCount = 1,
         .pColorAttachmentFormats = &swapchain_image_format_,
+        .depthAttachmentFormat = findDepthFormat(physical_device_),
     };
 
     const vk::GraphicsPipelineCreateInfo pipeline_create_info {
@@ -475,7 +522,7 @@ void HelloTriangleApplicationCpp::createGraphicPipeline() {
         .pViewportState = &viewport_state_create_info,
         .pRasterizationState = &rasterization_state_create_info,
         .pMultisampleState = &multisample_state_create_info,
-        .pDepthStencilState = nullptr,
+        .pDepthStencilState = &depth_stencil_state_create_info,
         .pColorBlendState = &color_blend_state_create_info,
         .pDynamicState = &dynamic_state_create_info,
         .layout = pipeline_layout_,
@@ -537,6 +584,7 @@ void HelloTriangleApplicationCpp::createTextureImage() {
     transitionImageLayout(
         command_buffer,
         texture_image_,
+        vk::Format::eR8G8B8A8Srgb,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eTransferDstOptimal,
         vk::PipelineStageFlagBits2::eTopOfPipe,
@@ -552,6 +600,7 @@ void HelloTriangleApplicationCpp::createTextureImage() {
     transitionImageLayout(
         command_buffer,
         texture_image_,
+        vk::Format::eR8G8B8A8Srgb,
         vk::ImageLayout::eTransferDstOptimal,
         vk::ImageLayout::eShaderReadOnlyOptimal,
         vk::PipelineStageFlagBits2::eTransfer,
@@ -770,6 +819,7 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
     transitionImageLayout(
         command_buffers_[image_index],
         swapchain_images_[image_index],
+        swapchain_image_format_,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::PipelineStageFlagBits2::eTopOfPipe,
@@ -787,11 +837,21 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
         .clearValue = clear_color,
     };
 
+    constexpr vk::ClearValue clear_depth = vk::ClearDepthStencilValue{1.0f, 0};
+    vk::RenderingAttachmentInfo depth_attachment_info = {
+        .imageView = depth_buffer_image_view_,
+        .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+        .loadOp = vk::AttachmentLoadOp::eClear,
+        .storeOp = vk::AttachmentStoreOp::eDontCare,
+        .clearValue = clear_depth,
+    };
+
     const vk::RenderingInfo rendering_info = {
         .renderArea = {.offset = {0, 0}, .extent = swapchain_extent_},
         .layerCount = 1,
         .colorAttachmentCount = 1,
         .pColorAttachments = &attachment_info,
+        .pDepthAttachment = &depth_attachment_info,
     };
 
     command_buffers_[image_index].beginRendering(rendering_info);
@@ -827,6 +887,7 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
     transitionImageLayout(
         command_buffers_[image_index],
         swapchain_images_[image_index],
+        swapchain_image_format_,
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::ImageLayout::ePresentSrcKHR,
         vk::PipelineStageFlagBits2::eColorAttachmentOutput,
@@ -870,6 +931,7 @@ void HelloTriangleApplicationCpp::recreateSwapChain() {
 
     createSwapChain();
     createSwapchainImageView();
+    createDepthBufferResources();
     recordCommandBuffers();
 }
 

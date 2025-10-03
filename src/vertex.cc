@@ -15,7 +15,7 @@ std::array<vk::VertexInputAttributeDescription, 3>
 Vertex::getAttributeDescriptions()
 {
     return {
-        vk::VertexInputAttributeDescription {0, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, position) },
+        vk::VertexInputAttributeDescription {0, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, position) },
         vk::VertexInputAttributeDescription {1, 0, vk::Format::eR32G32B32Sfloat, offsetof(Vertex, color) },
         vk::VertexInputAttributeDescription {2, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, tex_coordinates) },
     };

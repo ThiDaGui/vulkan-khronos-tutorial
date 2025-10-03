@@ -38,6 +38,7 @@ std::vector<char> readShader(const std::filesystem::path &file_path);
 
 void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
                            const vk::Image &image,
+                           vk::Format image_format,
                            vk::ImageLayout old_layout,
                            vk::ImageLayout new_layout,
                            vk::PipelineStageFlags2 src_stage_mask,
@@ -50,3 +51,5 @@ uint32_t findMemoryTypeIndex(
     const vk::PhysicalDeviceMemoryProperties &memory_properties,
     std::uint32_t memory_type_bits,
     vk::MemoryPropertyFlags property_flags);
+
+vk::Format findDepthFormat(const vk::raii::PhysicalDevice &physical_device);

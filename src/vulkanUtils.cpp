@@ -144,12 +144,26 @@ std::vector<char> readShader(const std::filesystem::path &file_path) {
 
 void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
                            const vk::Image &image,
+                           const vk::Format image_format,
                            const vk::ImageLayout old_layout,
                            const vk::ImageLayout new_layout,
                            const vk::PipelineStageFlags2 src_stage_mask,
                            const vk::AccessFlags2 src_access_mask,
                            const vk::PipelineStageFlags2 dst_stage_mask,
                            const vk::AccessFlags2 dst_access_mask) {
+    vk::ImageAspectFlags aspect;
+    switch(new_layout) {
+    case vk::ImageLayout::eDepthStencilAttachmentOptimal:
+        aspect = vk::ImageAspectFlagBits::eDepth;
+        if (vk::hasStencilComponent(image_format))
+            aspect |= vk::ImageAspectFlagBits::eStencil;
+        break;
+
+    default:
+        aspect = vk::ImageAspectFlagBits::eColor;
+        break;
+    }
+
     vk::ImageMemoryBarrier2 barrier = {
         .srcStageMask = src_stage_mask,
         .srcAccessMask = src_access_mask,
@@ -161,7 +175,7 @@ void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
         .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
         .image = image,
         .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .aspectMask = aspect,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,
@@ -189,4 +203,30 @@ uint32_t findMemoryTypeIndex(
     }
 
     throw std::runtime_error("Failed to find a suitable memory type!");
+}
+
+vk::Format findImageFormat(
+    const vk::raii::PhysicalDevice &physical_device,
+    const std::vector<vk::Format> &formats,
+    const vk::ImageTiling tiling,
+    const vk::FormatFeatureFlags features)
+{
+    for (const auto & format : formats) {
+        const auto format_features = physical_device.getFormatProperties(format);
+        if (vk::ImageTiling::eLinear == tiling && (format_features.linearTilingFeatures & features) == features)
+            return format;
+        if (vk::ImageTiling::eOptimal == tiling && (format_features.optimalTilingFeatures & features) == features)
+            return format;
+    }
+
+    throw std::runtime_error("Failed to find supported format!");
+}
+
+vk::Format findDepthFormat(const vk::raii::PhysicalDevice &physical_device)
+{
+    return findImageFormat(
+        physical_device,
+        {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
+        vk::ImageTiling::eOptimal,
+        vk::FormatFeatureFlagBits::eDepthStencilAttachment);
 }
