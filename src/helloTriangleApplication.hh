@@ -59,6 +59,7 @@ private:
     bool framebufferResized = false;
 
     vk::raii::DescriptorSetLayout mvp_descriptor_set_layout_ = nullptr;
+    vk::raii::DescriptorSetLayout descriptor_set_layout_ = nullptr;
     vk::raii::PipelineLayout pipeline_layout_ = nullptr;
     vk::raii::Pipeline graphic_pipeline_ = nullptr;
 

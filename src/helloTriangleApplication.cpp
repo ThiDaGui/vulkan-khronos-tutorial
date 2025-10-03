@@ -366,12 +366,12 @@ void HelloTriangleApplicationCpp::createDescriptorSetLayout()
         }
     }};
 
-    const vk::DescriptorSetLayoutCreateInfo mvp_layout_create_info = {
+    const vk::DescriptorSetLayoutCreateInfo layout_create_info = {
         .bindingCount = layout_bindings.size(),
         .pBindings = layout_bindings.data(),
     };
 
-    mvp_descriptor_set_layout_ = vk::raii::DescriptorSetLayout(device_, mvp_layout_create_info);
+    descriptor_set_layout_ = vk::raii::DescriptorSetLayout(device_, layout_create_info);
 }
 
 void HelloTriangleApplicationCpp::createGraphicPipeline() {
@@ -455,7 +455,7 @@ void HelloTriangleApplicationCpp::createGraphicPipeline() {
 
     vk::PipelineLayoutCreateInfo pipeline_layout_create_info {
         .setLayoutCount = 1,
-        .pSetLayouts = &*mvp_descriptor_set_layout_,
+        .pSetLayouts = &*descriptor_set_layout_,
         .pushConstantRangeCount = 0,
     };
 
@@ -701,7 +701,7 @@ void HelloTriangleApplicationCpp::createDescriptorPool()
 }
 
 void HelloTriangleApplicationCpp::createDescriptorSets() {
-    std::vector<vk::DescriptorSetLayout> layouts{swapchain_images_.size(), mvp_descriptor_set_layout_};
+    std::vector<vk::DescriptorSetLayout> layouts{swapchain_images_.size(), descriptor_set_layout_};
     vk::DescriptorSetAllocateInfo allocate_info = {
         .descriptorPool = descriptor_pool_,
         .descriptorSetCount = static_cast<uint32_t>(layouts.size()),
