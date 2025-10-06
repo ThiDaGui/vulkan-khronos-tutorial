@@ -46,7 +46,7 @@ constexpr std::array<Vertex, 24> vertices {{
     }
 };
 
-constexpr std::array<uint16_t, 36> indices = {
+constexpr std::array<uint32_t, 36> indices = {
     0, 1, 2, 2, 3, 0,
     4, 5, 6, 6, 7, 4,
     8, 9, 10, 10, 11, 8,
@@ -106,9 +106,11 @@ private:
 
     uint32_t image_index_ = 0;
 
+    std::vector<Vertex> vertices_;
     vk::raii::Buffer vertex_buffer_ = nullptr;
     vk::raii::DeviceMemory vertex_buffer_memory_ = nullptr;
 
+    std::vector<uint32_t> indices_;
     vk::raii::Buffer index_buffer_ = nullptr;
     vk::raii::DeviceMemory index_buffer_memory_ = nullptr;
 
@@ -161,6 +163,8 @@ private:
     void createTextureImage();
     void createTextureImageView();
     void createTextureImageSampler();
+
+    void loadModel();
 
     void createVertexBuffer();
 

@@ -21,6 +21,9 @@ import vulkan_hpp;
 //stb_image
 #include "../external/stb_image.h"
 
+//tiny_obj_loader
+#include "../external/tiny_obj_loader.h"
+
 VKAPI_ATTR vk::Bool32 VKAPI_CALL
 debugCallback(const vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
               const vk::DebugUtilsMessageTypeFlagsEXT messageType,
@@ -121,6 +124,7 @@ void HelloTriangleApplicationCpp::initVulkan() {
     createTextureImageView();
     createTextureImageSampler();
 
+    loadModel();
     createVertexBuffer();
     createIndexBuffer();
 
@@ -552,8 +556,10 @@ void HelloTriangleApplicationCpp::createCommandPool() {
 
 void HelloTriangleApplicationCpp::createTextureImage() {
     int texture_width, texture_height, texture_channels;
-    stbi_uc *pixels = stbi_load((texturePath / "brick.png").c_str(), &texture_width, &texture_height, &texture_channels, 4);
+    stbi_set_flip_vertically_on_load(true);
+    stbi_uc *pixels = stbi_load((texturePath / "viking_room.png").c_str(), &texture_width, &texture_height, &texture_channels, 4);
     const vk::DeviceSize image_size = texture_width *texture_height * 4;
+    stbi_set_flip_vertically_on_load(false);
 
     if (!pixels)
         throw std::runtime_error("Failed to load texture image!");
@@ -642,9 +648,44 @@ void HelloTriangleApplicationCpp::createTextureImageSampler()
     texture_image_sampler_ = vk::raii::Sampler(device_, sampler_create_info);
 }
 
+void HelloTriangleApplicationCpp::loadModel()
+{
+    tinyobj::attrib_t attrib{};
+    std::vector<tinyobj::shape_t> shapes{};
+    std::vector<tinyobj::material_t> materials{};
+    std::string warn{}, err{};
+
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, (modelPath / "viking_room.obj").c_str()))
+        throw std::runtime_error(warn + err);
+
+    std::unordered_map<Vertex, uint32_t> unique_vertices{};
+
+    for (const auto &shape : shapes) {
+        for (const auto &index : shape.mesh.indices) {
+            Vertex vertex{};
+
+            vertex.position = {
+                attrib.vertices[3 * index.vertex_index + 0],
+                attrib.vertices[3 * index.vertex_index + 1],
+                attrib.vertices[3 * index.vertex_index + 2]
+            };
+            vertex.tex_coordinates = {
+                attrib.texcoords[2 * index.texcoord_index + 0],
+                attrib.texcoords[2 * index.texcoord_index + 1]
+            };
+
+            if (!unique_vertices.contains(vertex)) {
+                unique_vertices[vertex] = static_cast<uint32_t>(unique_vertices.size());
+                vertices_.push_back(vertex);
+            }
+            indices_.push_back(unique_vertices[vertex]);
+        }
+    }
+}
+
 void HelloTriangleApplicationCpp::createVertexBuffer()
 {
-    constexpr vk::DeviceSize vertex_buffer_size = vertices.size() * sizeof(Vertex);
+    const vk::DeviceSize vertex_buffer_size = vertices_.size() * sizeof(Vertex);
     vk::raii::Buffer staging_buffer{nullptr};
     vk::raii::DeviceMemory staging_buffer_memory{nullptr};
 
@@ -657,7 +698,7 @@ void HelloTriangleApplicationCpp::createVertexBuffer()
         );
 
     void * const data = staging_buffer_memory.mapMemory(0, vertex_buffer_size);
-    memcpy(data, vertices.data(), vertex_buffer_size);
+    memcpy(data, vertices_.data(), vertex_buffer_size);
     staging_buffer_memory.unmapMemory();
 
     createBuffer(
@@ -674,7 +715,7 @@ void HelloTriangleApplicationCpp::createVertexBuffer()
 
 void HelloTriangleApplicationCpp::createIndexBuffer()
 {
-    constexpr vk::DeviceSize index_buffer_size = indices.size() * sizeof(indices[0]);
+    const vk::DeviceSize index_buffer_size = indices_.size() * sizeof(indices_[0]);
     vk::raii::Buffer staging_buffer{nullptr};
     vk::raii::DeviceMemory staging_buffer_memory{nullptr};
 
@@ -687,7 +728,7 @@ void HelloTriangleApplicationCpp::createIndexBuffer()
         );
 
     void * const data = staging_buffer_memory.mapMemory(0, index_buffer_size);
-    memcpy(data, indices.data(), index_buffer_size);
+    memcpy(data, indices_.data(), index_buffer_size);
     staging_buffer_memory.unmapMemory();
 
     createBuffer(
@@ -875,10 +916,10 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
     }
 
     command_buffers_[image_index].bindVertexBuffers(0, *vertex_buffer_, {0});
-    command_buffers_[image_index].bindIndexBuffer(index_buffer_, 0, vk::IndexType::eUint16);
+    command_buffers_[image_index].bindIndexBuffer(index_buffer_, 0, vk::IndexType::eUint32);
 
     command_buffers_[image_index].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[image_index], nullptr);
-    command_buffers_[image_index].drawIndexed(indices.size(), 1, 0, 0, 0);
+    command_buffers_[image_index].drawIndexed(indices_.size(), 1, 0, 0, 0);
 
     command_buffers_[image_index].endRendering();
 
@@ -1001,8 +1042,8 @@ void HelloTriangleApplicationCpp::UpdateMVPUniformBuffer() const
     const auto current_time = std::chrono::high_resolution_clock::now();
     const float time = std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time).count();
     MVPUniformBuffer mvp{};
-    mvp.model = glm::rotate(glm::mat4{1.0f}, time * glm::radians(90.0f), glm::vec3{0.0f, 0.0f, 1.0f});
-    mvp.view = glm::lookAt(glm::vec3{2.0f, 2.0f, 2.0f}, glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
+    mvp.model = glm::rotate(glm::mat4{1.0f}, glm::sin(time) * glm::radians(30.0f), glm::vec3{0.0f, 0.0f, 1.0f});
+    mvp.view = glm::lookAt(glm::vec3{2.0f, 2.0f, 2.25f}, glm::vec3{0.0f, 0.0f, 0.25f}, glm::vec3{0.0f, 0.0f, 1.0f});
     mvp.proj = glm::perspective(glm::radians(30.0f), static_cast<float>(swapchain_extent_.width) / static_cast<float>(swapchain_extent_.height), 0.1f, 10.0f);
     mvp.proj[1][1] *= -1;
 

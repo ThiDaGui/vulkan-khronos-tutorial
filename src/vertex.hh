@@ -6,6 +6,8 @@
 
 import vulkan_hpp;
 
+#include <functional>
+
 #include <glm/glm.hpp>
 
 struct Vertex {
@@ -15,4 +17,11 @@ struct Vertex {
 
     static vk::VertexInputBindingDescription getBindingDescription();
     static std::array<vk::VertexInputAttributeDescription, 3> getAttributeDescriptions();
+
+    bool operator==(const Vertex &) const = default;
+};
+
+template<>
+struct std::hash<Vertex>{
+    std::size_t operator()(const Vertex &key) const noexcept;
 };

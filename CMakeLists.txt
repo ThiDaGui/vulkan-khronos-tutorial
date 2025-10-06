@@ -66,6 +66,7 @@ add_executable(drawTriangleCpp
         src/helloTriangleApplication.hh
         src/vulkanUtils.hh
         src/vertex.hh
+        src/tiny_obj_loader.cc
 )
 
 target_include_directories(drawTriangleCpp PRIVATE
