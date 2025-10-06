@@ -229,7 +229,7 @@ private:
         vk::raii::Image &image,
         vk::raii::DeviceMemory &image_memory) const;
 
-    [[nodiscard]] vk::raii::CommandBuffer beginTransientCommandBuffer() const;
+    [[nodiscard]] std::unique_ptr<vk::raii::CommandBuffer> beginTransientCommandBuffer() const;
     void endTransientCommandBuffer(const vk::raii::CommandBuffer &command_buffer) const;
 };
 

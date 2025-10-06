@@ -375,9 +375,9 @@ void HelloTriangleApplicationCpp::createDepthBufferResources() {
 
     depth_buffer_image_view_ = vk::raii::ImageView(device_, image_view_create_info);
 
-    const vk::raii::CommandBuffer command_buffer = beginTransientCommandBuffer();
+    const auto command_buffer = beginTransientCommandBuffer();
     transitionImageLayout(
-        command_buffer,
+        *command_buffer,
         depth_buffer_,
         format,
         vk::ImageLayout::eUndefined,
@@ -387,7 +387,7 @@ void HelloTriangleApplicationCpp::createDepthBufferResources() {
         vk::PipelineStageFlagBits2::eEarlyFragmentTests,
         vk::AccessFlagBits2::eDepthStencilAttachmentRead
         );
-    endTransientCommandBuffer(command_buffer);
+    endTransientCommandBuffer(*command_buffer);
 }
 
 void HelloTriangleApplicationCpp::createDescriptorSetLayout()
@@ -582,9 +582,9 @@ void HelloTriangleApplicationCpp::createTextureImage() {
         texture_image_memory_
         );
 
-    const vk::raii::CommandBuffer command_buffer = beginTransientCommandBuffer();
+    const auto command_buffer = beginTransientCommandBuffer();
     transitionImageLayout(
-        command_buffer,
+        *command_buffer,
         texture_image_,
         vk::Format::eR8G8B8A8Srgb,
         vk::ImageLayout::eUndefined,
@@ -598,9 +598,9 @@ void HelloTriangleApplicationCpp::createTextureImage() {
         .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
         .imageExtent = {static_cast<uint32_t>(texture_width), static_cast<uint32_t>(texture_height), 1},
     };
-    command_buffer.copyBufferToImage(image_buffer, texture_image_, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
+    command_buffer->copyBufferToImage(image_buffer, texture_image_, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
     transitionImageLayout(
-        command_buffer,
+        *command_buffer,
         texture_image_,
         vk::Format::eR8G8B8A8Srgb,
         vk::ImageLayout::eTransferDstOptimal,
@@ -610,9 +610,7 @@ void HelloTriangleApplicationCpp::createTextureImage() {
         vk::PipelineStageFlagBits2::eFragmentShader,
         vk::AccessFlagBits2::eShaderRead
         );
-    endTransientCommandBuffer(command_buffer);
-
-
+    endTransientCommandBuffer(*command_buffer);
 }
 
 void HelloTriangleApplicationCpp::createTextureImageView()
@@ -1171,7 +1169,7 @@ void HelloTriangleApplicationCpp::createImage(
     image.bindMemory(image_memory, 0);
 }
 
-vk::raii::CommandBuffer HelloTriangleApplicationCpp::beginTransientCommandBuffer() const
+std::unique_ptr<vk::raii::CommandBuffer> HelloTriangleApplicationCpp::beginTransientCommandBuffer() const
 
 {
     const vk::CommandBufferAllocateInfo allocate_info = {
@@ -1180,8 +1178,8 @@ vk::raii::CommandBuffer HelloTriangleApplicationCpp::beginTransientCommandBuffer
         .commandBufferCount = 1
     };
 
-    vk::raii::CommandBuffer command_buffer = std::move(device_.allocateCommandBuffers(allocate_info).front());
-    command_buffer.begin({});
+    auto command_buffer = std::make_unique<vk::raii::CommandBuffer>(std::move(device_.allocateCommandBuffers(allocate_info).front()));
+    command_buffer->begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
     return command_buffer;
 }
