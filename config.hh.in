@@ -3,4 +3,6 @@
 #include <filesystem>
 
 static std::filesystem::path shaderPath = "@SHADER_BINARY_DIR@";
-static std::filesystem::path dataPath = "@DATA_PATH@";
+static std::filesystem::path dataPath = "@DATA_DIR@";
+static std::filesystem::path texturePath = dataPath / "textures";
+static std::filesystem::path modelPath = dataPath / "models";

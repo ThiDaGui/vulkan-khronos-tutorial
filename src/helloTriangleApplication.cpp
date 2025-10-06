@@ -8,6 +8,7 @@ import vulkan_hpp;
 #include <iostream>
 #include <set>
 #include <sstream>
+#include <unordered_map>
 
 //glm
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -16,8 +17,9 @@ import vulkan_hpp;
 
 #include "vulkanUtils.hh"
 #include "config.hh"
-#include "stb_image.h"
-#include "vulkan/vulkan_raii.hpp"
+
+//stb_image
+#include "../external/stb_image.h"
 
 VKAPI_ATTR vk::Bool32 VKAPI_CALL
 debugCallback(const vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -550,7 +552,7 @@ void HelloTriangleApplicationCpp::createCommandPool() {
 
 void HelloTriangleApplicationCpp::createTextureImage() {
     int texture_width, texture_height, texture_channels;
-    stbi_uc *pixels = stbi_load((dataPath / "brick.png").c_str(), &texture_width, &texture_height, &texture_channels, 4);
+    stbi_uc *pixels = stbi_load((texturePath / "brick.png").c_str(), &texture_width, &texture_height, &texture_channels, 4);
     const vk::DeviceSize image_size = texture_width *texture_height * 4;
 
     if (!pixels)
