@@ -362,6 +362,7 @@ void HelloTriangleApplicationCpp::createDepthBufferResources() {
     createImage(
         swapchain_extent_.width,
         swapchain_extent_.height,
+        1,
         format,
         vk::ImageTiling::eOptimal,
         vk::ImageUsageFlagBits::eDepthStencilAttachment,
@@ -383,6 +384,7 @@ void HelloTriangleApplicationCpp::createDepthBufferResources() {
     transitionImageLayout(
         *command_buffer,
         depth_buffer_,
+        1,
         format,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -564,6 +566,8 @@ void HelloTriangleApplicationCpp::createTextureImage() {
     if (!pixels)
         throw std::runtime_error("Failed to load texture image!");
 
+    texture_image_mip_levels_ = static_cast<uint32_t>(std::floor(std::log2(std::max(texture_width, texture_height))));
+
     vk::raii::Buffer image_buffer{nullptr};
     vk::raii::DeviceMemory image_buffer_memory{nullptr};
     createBuffer(
@@ -580,9 +584,12 @@ void HelloTriangleApplicationCpp::createTextureImage() {
     createImage(
         texture_width,
         texture_height,
+        texture_image_mip_levels_,
         vk::Format::eR8G8B8A8Srgb,
         vk::ImageTiling::eOptimal,
-        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+        vk::ImageUsageFlagBits::eTransferSrc |
+            vk::ImageUsageFlagBits::eTransferDst|
+            vk::ImageUsageFlagBits::eSampled,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         texture_image_,
         texture_image_memory_
@@ -592,6 +599,7 @@ void HelloTriangleApplicationCpp::createTextureImage() {
     transitionImageLayout(
         *command_buffer,
         texture_image_,
+        texture_image_mip_levels_,
         vk::Format::eR8G8B8A8Srgb,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eTransferDstOptimal,
@@ -605,17 +613,13 @@ void HelloTriangleApplicationCpp::createTextureImage() {
         .imageExtent = {static_cast<uint32_t>(texture_width), static_cast<uint32_t>(texture_height), 1},
     };
     command_buffer->copyBufferToImage(image_buffer, texture_image_, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
-    transitionImageLayout(
-        *command_buffer,
-        texture_image_,
-        vk::Format::eR8G8B8A8Srgb,
-        vk::ImageLayout::eTransferDstOptimal,
-        vk::ImageLayout::eShaderReadOnlyOptimal,
-        vk::PipelineStageFlagBits2::eTransfer,
-        vk::AccessFlagBits2::eTransferWrite,
-        vk::PipelineStageFlagBits2::eFragmentShader,
-        vk::AccessFlagBits2::eShaderRead
-        );
+
+    vk::FormatProperties format_properties = physical_device_.getFormatProperties(vk::Format::eR8G8B8A8Srgb);
+    if (!(format_properties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eSampledImageFilterLinear))
+        throw std::runtime_error("texture image format does not support linear blitting!");
+
+    generateMips(*command_buffer, texture_image_, texture_width, texture_height, texture_image_mip_levels_);
+
     endTransientCommandBuffer(*command_buffer);
 }
 
@@ -625,7 +629,13 @@ void HelloTriangleApplicationCpp::createTextureImageView()
         .image = texture_image_,
         .viewType = vk::ImageViewType::e2D,
         .format = vk::Format::eR8G8B8A8Srgb,
-        .subresourceRange = vk::ImageSubresourceRange{vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
+        .subresourceRange = {
+            vk::ImageAspectFlagBits::eColor,
+            0,
+            texture_image_mip_levels_,
+            0,
+            1
+        }
     };
 
     texture_image_view_ = vk::raii::ImageView(device_, texture_image_view_create_info);
@@ -641,6 +651,7 @@ void HelloTriangleApplicationCpp::createTextureImageSampler()
         .mipmapMode = vk::SamplerMipmapMode::eLinear,
         .addressModeU = vk::SamplerAddressMode::eRepeat,
         .addressModeV = vk::SamplerAddressMode::eRepeat,
+        .mipLodBias = 0.0f,
         .anisotropyEnable = true,
         .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
     };
@@ -860,6 +871,7 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
     transitionImageLayout(
         command_buffers_[image_index],
         swapchain_images_[image_index],
+        1,
         swapchain_image_format_,
         vk::ImageLayout::eUndefined,
         vk::ImageLayout::eColorAttachmentOptimal,
@@ -867,7 +879,7 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
         {},
         vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         vk::AccessFlagBits2::eColorAttachmentWrite
-    );
+        );
 
     constexpr vk::ClearValue clear_color = vk::ClearColorValue{0.0f, 0.0f, 0.0f, 1.0f};
     vk::RenderingAttachmentInfo attachment_info = {
@@ -928,6 +940,7 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
     transitionImageLayout(
         command_buffers_[image_index],
         swapchain_images_[image_index],
+        1,
         swapchain_image_format_,
         vk::ImageLayout::eColorAttachmentOptimal,
         vk::ImageLayout::ePresentSrcKHR,
@@ -935,7 +948,7 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
         vk::AccessFlagBits2::eColorAttachmentWrite,
         vk::PipelineStageFlagBits2::eBottomOfPipe,
         {}
-    );
+        );
 
     command_buffers_[image_index].end();
 }
@@ -1170,6 +1183,7 @@ void HelloTriangleApplicationCpp::copyBuffer(
 void HelloTriangleApplicationCpp::createImage(
     const uint32_t width,
     const uint32_t height,
+    const uint32_t mip_levels,
     const vk::Format format,
     const vk::ImageTiling tiling,
     const vk::ImageUsageFlags image_usage_flags,
@@ -1181,7 +1195,7 @@ void HelloTriangleApplicationCpp::createImage(
         .imageType = vk::ImageType::e2D,
         .format = format,
         .extent = {width, height, 1},
-        .mipLevels = 1,
+        .mipLevels = mip_levels,
         .arrayLayers = 1,
         .samples = vk::SampleCountFlagBits::e1,
         .tiling = tiling,

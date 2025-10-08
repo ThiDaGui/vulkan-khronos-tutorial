@@ -38,6 +38,7 @@ std::vector<char> readShader(const std::filesystem::path &file_path);
 
 void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
                            const vk::Image &image,
+                           uint32_t mip_levels,
                            vk::Format image_format,
                            vk::ImageLayout old_layout,
                            vk::ImageLayout new_layout,
@@ -53,3 +54,9 @@ uint32_t findMemoryTypeIndex(
     vk::MemoryPropertyFlags property_flags);
 
 vk::Format findDepthFormat(const vk::raii::PhysicalDevice &physical_device);
+
+void generateMips(
+    const vk::raii::CommandBuffer &command_buffer,
+    const vk::raii::Image& image,
+    int32_t image_width,
+    int32_t image_height, uint32_t mip_levels);

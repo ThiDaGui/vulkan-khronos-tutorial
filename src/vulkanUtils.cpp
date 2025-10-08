@@ -144,6 +144,7 @@ std::vector<char> readShader(const std::filesystem::path &file_path) {
 
 void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
                            const vk::Image &image,
+                           const uint32_t mip_levels,
                            const vk::Format image_format,
                            const vk::ImageLayout old_layout,
                            const vk::ImageLayout new_layout,
@@ -177,7 +178,7 @@ void transitionImageLayout(const vk::raii::CommandBuffer &command_buffer,
         .subresourceRange = {
             .aspectMask = aspect,
             .baseMipLevel = 0,
-            .levelCount = 1,
+            .levelCount = mip_levels,
             .baseArrayLayer = 0,
             .layerCount = 1,
         }
@@ -229,4 +230,76 @@ vk::Format findDepthFormat(const vk::raii::PhysicalDevice &physical_device)
         {vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint},
         vk::ImageTiling::eOptimal,
         vk::FormatFeatureFlagBits::eDepthStencilAttachment);
+}
+
+void generateMips(
+    const vk::raii::CommandBuffer& command_buffer,
+    const vk::raii::Image &image,
+    const int32_t image_width,
+    const int32_t image_height, const uint32_t mip_levels)
+{
+    vk::ImageMemoryBarrier2 barrier = {
+        .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+        .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+        .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+        .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
+        .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+        .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+        .image = image,
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        }
+    };
+
+    const vk::DependencyInfo dependency_info = {
+        .imageMemoryBarrierCount = 1,
+        .pImageMemoryBarriers = &barrier,
+    };
+
+    vk::ArrayWrapper1D<vk::Offset3D, 2> src_offsets, dst_offsets;
+    src_offsets[0] = {0, 0, 0};
+    src_offsets[1] = {image_width, image_height, 1};
+    dst_offsets[0] = {0, 0, 0};
+    dst_offsets[1] = {std::max(image_width >> 1, 1), std::max(image_height >> 1, 1), 1};
+
+    for (uint32_t i = 1; i < mip_levels; i++) {
+        barrier.subresourceRange.baseMipLevel = i - 1;
+        command_buffer.pipelineBarrier2(dependency_info);
+
+        vk::ImageBlit image_blit = {
+            .srcOffsets = src_offsets,
+            .dstOffsets = dst_offsets,
+        };
+        image_blit.srcSubresource = {vk::ImageAspectFlagBits::eColor, i - 1, 0, 1};
+        image_blit.dstSubresource = {vk::ImageAspectFlagBits::eColor, i, 0, 1};
+
+        command_buffer.blitImage(image, vk::ImageLayout::eTransferSrcOptimal, image, vk::ImageLayout::eTransferDstOptimal, image_blit, vk::Filter::eLinear);
+
+        src_offsets[1] = dst_offsets[1];
+        dst_offsets[1] = {
+            std::max(dst_offsets[1].x >> 1, 1),
+            std::max(dst_offsets[1].y >> 1, 1),
+            1
+        };
+    }
+
+    // Transition the last mip level
+    barrier.subresourceRange.baseMipLevel = mip_levels - 1;
+    command_buffer.pipelineBarrier2(dependency_info);
+
+    barrier.srcStageMask = vk::PipelineStageFlagBits2::eTransfer;
+    barrier.srcAccessMask = vk::AccessFlagBits2::eTransferWrite;
+    barrier.dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader;
+    barrier.dstAccessMask = vk::AccessFlagBits2::eShaderRead;
+    barrier.oldLayout = vk::ImageLayout::eTransferSrcOptimal;
+    barrier.newLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+    barrier.subresourceRange.levelCount = mip_levels;
+    barrier.subresourceRange.baseMipLevel = 0;
+
+    command_buffer.pipelineBarrier2(dependency_info);
 }
