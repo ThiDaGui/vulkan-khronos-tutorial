@@ -38,12 +38,18 @@ class HelloTriangleApplicationCpp {
     vk::raii::Queue graphic_queue_ = nullptr;
     vk::raii::Queue present_queue_ = nullptr;
 
+    vk::SampleCountFlagBits msaa_samples_ = vk::SampleCountFlagBits::e1;
+
     vk::raii::SwapchainKHR swapchain_ = nullptr;
     std::vector<vk::Image> swapchain_images_;
     vk::Format swapchain_image_format_ = vk::Format::eUndefined;
     vk::Extent2D swapchain_extent_;
     std::vector<vk::raii::ImageView> swapchain_image_views_;
     bool framebufferResized = false;
+
+    vk::raii::Image color_buffer_ = nullptr;
+    vk::raii::DeviceMemory color_buffer_memory_ = nullptr;
+    vk::raii::ImageView color_buffer_image_view_ = nullptr;
 
     vk::raii::Image depth_buffer_ = nullptr;
     vk::raii::DeviceMemory depth_buffer_memory_ = nullptr;
@@ -110,6 +116,7 @@ private:
 
     void createSwapchainImageView();
 
+    void createColorBufferResources();
     void createDepthBufferResources();
 
     void createDescriptorSetLayout();
@@ -157,6 +164,7 @@ private:
     //-------------------------
 
     void UpdateMVPUniformBuffer() const;
+
     //-------------------------
 
     void setupDebugMessenger();
@@ -185,6 +193,7 @@ private:
         uint32_t width,
         uint32_t height,
         unsigned mip_levels,
+        vk::SampleCountFlagBits samples,
         vk::Format format,
         vk::ImageTiling tiling,
         vk::ImageUsageFlags image_usage_flags,
@@ -192,7 +201,10 @@ private:
         vk::raii::Image &image,
         vk::raii::DeviceMemory &image_memory) const;
 
+    [[nodiscard]] vk::SampleCountFlagBits getUsableSampleCounts() const;
+
     [[nodiscard]] std::unique_ptr<vk::raii::CommandBuffer> beginTransientCommandBuffer() const;
+
     void endTransientCommandBuffer(const vk::raii::CommandBuffer &command_buffer) const;
 };
 

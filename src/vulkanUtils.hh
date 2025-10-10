@@ -60,3 +60,5 @@ void generateMips(
     const vk::raii::Image& image,
     int32_t image_width,
     int32_t image_height, uint32_t mip_levels);
+
+void listUsableSampleCounts(vk::SampleCountFlags samples, vk::SampleCountFlagBits used_sample);

@@ -303,3 +303,49 @@ void generateMips(
 
     command_buffer.pipelineBarrier2(dependency_info);
 }
+
+std::string sampleCountToString(const vk::SampleCountFlagBits sample)
+{
+    switch (sample) {
+    case vk::SampleCountFlagBits::e64:
+        return "64X MSAA";
+    case vk::SampleCountFlagBits::e32:
+        return "32X MSAA";
+    case vk::SampleCountFlagBits::e16:
+        return "16X MSAA";
+    case vk::SampleCountFlagBits::e8:
+        return "8X MSAA";
+    case vk::SampleCountFlagBits::e4:
+        return "4X MSAA";
+    case vk::SampleCountFlagBits::e2:
+        return "2X MSAA";
+    case vk::SampleCountFlagBits::e1:
+        return "NO MSAA";
+    }
+}
+
+void listUsableSampleCounts(
+    const vk::SampleCountFlags samples,
+    const vk::SampleCountFlagBits used_sample)
+{
+    std::cout << "Supported Sample Counts:" << '\n';
+    if (samples & vk::SampleCountFlagBits::e64) {
+        std::cout << '\t' << sampleCountToString(vk::SampleCountFlagBits::e64) << '\n';
+    }
+    if (samples & vk::SampleCountFlagBits::e32) {
+        std::cout << '\t' << sampleCountToString(vk::SampleCountFlagBits::e32) << '\n';
+    }
+    if (samples& vk::SampleCountFlagBits::e16) {
+        std::cout << '\t' << sampleCountToString(vk::SampleCountFlagBits::e16) << '\n';
+    }
+    if (samples & vk::SampleCountFlagBits::e8) {
+        std::cout << '\t' << sampleCountToString(vk::SampleCountFlagBits::e8) << '\n';
+    }
+    if (samples & vk::SampleCountFlagBits::e4) {
+        std::cout << '\t' << sampleCountToString(vk::SampleCountFlagBits::e4) << '\n';
+    }
+    if (samples & vk::SampleCountFlagBits::e2) {
+        std::cout << '\t' << sampleCountToString(vk::SampleCountFlagBits::e2) << '\n';
+    }
+    std::cout << "Selected Sample Count: " << sampleCountToString(used_sample) << '\n';
+}
