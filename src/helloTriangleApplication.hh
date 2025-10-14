@@ -111,11 +111,9 @@ private:
     void createSurface();
 
     void pickPhysicalDevice();
-
     void createLogicalDevice();
 
     void createSwapChain();
-
     void createSwapchainImageView();
 
     void createColorBufferResources();
@@ -132,21 +130,16 @@ private:
     void createTextureImageSampler();
 
     void loadModel();
-
     void createVertexBuffer();
-
     void createIndexBuffer();
 
     void createUniformBuffers();
 
     void createDescriptorPool();
-
     void createDescriptorSets();
 
     void createCommandBuffers();
-
     void recordCommandBuffers() const;
-
     void recordCommandBuffer(uint32_t image_index) const;
     void recordImguiCommandBuffer(uint32_t image_index) const;
 
