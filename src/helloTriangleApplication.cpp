@@ -9,6 +9,7 @@ import vulkan_hpp;
 #include <set>
 #include <sstream>
 #include <unordered_map>
+#include <vulkan/vulkan_core.h>
 
 //glm
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -31,7 +32,7 @@ import vulkan_hpp;
 
 void check_vk_result(VkResult err)
 {
-    if (err == VK_SUCCESS)
+    if (VK_SUCCESS == err)
         return;
     fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
     if (err < 0)
@@ -130,6 +131,8 @@ void HelloTriangleApplicationCpp::initVulkan() {
 
     createGraphicPipeline();
 
+    initImgui();
+
     createCommandPool();
 
     createColorBufferResources();
@@ -155,6 +158,10 @@ void HelloTriangleApplicationCpp::initVulkan() {
 }
 
 void HelloTriangleApplicationCpp::cleanup() {
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     glfwDestroyWindow(window_);
 }
 
@@ -313,11 +320,11 @@ void HelloTriangleApplicationCpp::createSwapChain() {
     const vk::SurfaceFormatKHR surface_format = chooseSurfaceFormat(physical_device_.getSurfaceFormatsKHR(surface_));
     const vk::PresentModeKHR present_mode = choosePresentMode(physical_device_.getSurfacePresentModesKHR(surface_));
 
-    const std::uint32_t min_image_count = chooseMinImageCount(surface_capabilities);
+    swapchain_min_image_count = chooseMinImageCount(surface_capabilities);
 
     vk::SwapchainCreateInfoKHR swapchain_create_info{
         .surface = surface_,
-        .minImageCount = min_image_count,
+        .minImageCount = swapchain_min_image_count,
         .imageFormat = surface_format.format,
         .imageColorSpace = surface_format.colorSpace,
         .imageExtent = swapchain_extent_,
@@ -578,7 +585,7 @@ void HelloTriangleApplicationCpp::createGraphicPipeline() {
 
     pipeline_layout_ = vk::raii::PipelineLayout{ device_, pipeline_layout_create_info };
 
-    const vk::PipelineRenderingCreateInfo pipeline_rendering_create_info {
+    vk::PipelineRenderingCreateInfo pipeline_rendering_create_info = {
         .colorAttachmentCount = 1,
         .pColorAttachmentFormats = &swapchain_image_format_,
         .depthAttachmentFormat = findDepthFormat(physical_device_),
@@ -919,6 +926,7 @@ void HelloTriangleApplicationCpp::createCommandBuffers() {
     };
 
     command_buffers_ = vk::raii::CommandBuffers{device_, command_buffer_allocate_info};
+    imgui_command_buffers_ = vk::raii::CommandBuffers(device_, command_buffer_allocate_info);
 }
 
 void HelloTriangleApplicationCpp::recordCommandBuffers() const {
@@ -1006,10 +1014,48 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
 
     command_buffers_[image_index].endRendering();
 
-    // AS I understand, with previous iteration of the Vulkan Tutorial
-    // this transition was handled by the RenderPass
+    command_buffers_[image_index].end();
+}
+
+void HelloTriangleApplicationCpp::recordImguiCommandBuffer(
+    const uint32_t image_index) const
+{
+    imgui_command_buffers_[image_index].begin({});
+
     transitionImageLayout(
-        command_buffers_[image_index],
+        imgui_command_buffers_[image_index],
+        swapchain_images_[image_index],
+        1,
+        swapchain_image_format_,
+        vk::ImageLayout::eColorAttachmentOptimal,
+        vk::ImageLayout::eColorAttachmentOptimal,
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::AccessFlagBits2::eColorAttachmentWrite,
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        vk::AccessFlagBits2::eColorAttachmentWrite
+        );
+
+    const vk::RenderingAttachmentInfo attachment_info = {
+        .imageView = swapchain_image_views_[image_index],
+        .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+        .loadOp = vk::AttachmentLoadOp::eLoad,
+        .storeOp = vk::AttachmentStoreOp::eStore,
+    };
+
+    const vk::RenderingInfo rendering_info = {
+        .renderArea = {.offset = {0, 0}, .extent = swapchain_extent_},
+        .layerCount = 1,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &attachment_info,
+    };
+
+    imgui_command_buffers_[image_index].beginRendering(rendering_info);
+
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *imgui_command_buffers_[image_index]);
+
+    imgui_command_buffers_[image_index].endRendering();
+    transitionImageLayout(
+        imgui_command_buffers_[image_index],
         swapchain_images_[image_index],
         1,
         swapchain_image_format_,
@@ -1021,7 +1067,37 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
         {}
         );
 
-    command_buffers_[image_index].end();
+    imgui_command_buffers_[image_index].end();
+}
+
+void HelloTriangleApplicationCpp::initImgui() const
+{
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui_ImplGlfw_InitForVulkan(&*window_, true);
+
+    vk::PipelineRenderingCreateInfo pipeline_rendering_create_info = {
+        .colorAttachmentCount = 1,
+        .pColorAttachmentFormats = &swapchain_image_format_,
+    };
+
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.ApiVersion = vk::ApiVersion14;
+    init_info.Instance = *instance_;
+    init_info.PhysicalDevice = *physical_device_;
+    init_info.Device = *device_;
+    init_info.QueueFamily = queue_family_indices_.graphic_queue.value();
+    init_info.Queue = *graphic_queue_;
+    init_info.DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE;
+    init_info.MinImageCount = swapchain_min_image_count;
+    init_info.ImageCount = swapchain_images_.size();
+    init_info.UseDynamicRendering = true;
+    init_info.PipelineInfoMain.PipelineRenderingCreateInfo = pipeline_rendering_create_info;
+    init_info.PipelineInfoMain.MSAASamples = static_cast<VkSampleCountFlagBits>(vk::SampleCountFlagBits::e1);
+    init_info.CheckVkResultFn = &check_vk_result;
+
+    ImGui_ImplVulkan_Init(&init_info);
+
 }
 
 void HelloTriangleApplicationCpp::createSyncObject() {
@@ -1080,14 +1156,18 @@ void HelloTriangleApplicationCpp::drawFrame() {
     image_index_ = image_index;
 
     Update();
+    std::array<vk::CommandBuffer, 2> command_buffers {
+        command_buffers_[image_index_],
+        imgui_command_buffers_[image_index_],
+    };
 
     constexpr vk::PipelineStageFlags wait_destination_stage_mask{vk::PipelineStageFlagBits::eColorAttachmentOutput};
     const vk::SubmitInfo submit_info{
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &*present_complete_semaphores_[present_semaphore_index],
         .pWaitDstStageMask = &wait_destination_stage_mask,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &*command_buffers_[image_index_],
+        .commandBufferCount = command_buffers.size(),
+        .pCommandBuffers = command_buffers.data(),
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &*render_finished_semaphores_[image_index_],
     };
@@ -1118,6 +1198,7 @@ void HelloTriangleApplicationCpp::drawFrame() {
 void HelloTriangleApplicationCpp::Update() const
 {
     UpdateMVPUniformBuffer();
+    UpdateImGui();
 }
 
 void HelloTriangleApplicationCpp::UpdateMVPUniformBuffer() const
@@ -1133,6 +1214,21 @@ void HelloTriangleApplicationCpp::UpdateMVPUniformBuffer() const
     mvp.proj[1][1] *= -1;
 
     memcpy(mvp_uniform_buffers_mapped_[image_index_], &mvp, sizeof(mvp));
+}
+
+void HelloTriangleApplicationCpp::UpdateImGui() const
+{
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    static bool show_demo_window = true;
+    if (show_demo_window)
+        ImGui::ShowDemoWindow(&show_demo_window);
+
+    ImGui::Render();
+    recordImguiCommandBuffer(image_index_);
+
 }
 
 void HelloTriangleApplicationCpp::setupDebugMessenger() {

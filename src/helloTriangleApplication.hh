@@ -40,6 +40,7 @@ class HelloTriangleApplicationCpp {
 
     vk::SampleCountFlagBits msaa_samples_ = vk::SampleCountFlagBits::e1;
 
+    uint32_t swapchain_min_image_count = 0;
     vk::raii::SwapchainKHR swapchain_ = nullptr;
     std::vector<vk::Image> swapchain_images_;
     vk::Format swapchain_image_format_ = vk::Format::eUndefined;
@@ -62,6 +63,7 @@ class HelloTriangleApplicationCpp {
     vk::raii::CommandPool command_pool_ = nullptr;
     vk::raii::CommandPool transient_command_pool_ = nullptr;
     vk::raii::CommandBuffers command_buffers_ = nullptr;
+    vk::raii::CommandBuffers imgui_command_buffers_ = nullptr;
 
     std::vector<vk::raii::Semaphore> present_complete_semaphores_;
     std::vector<vk::raii::Semaphore> render_finished_semaphores_;
@@ -146,6 +148,9 @@ private:
     void recordCommandBuffers() const;
 
     void recordCommandBuffer(uint32_t image_index) const;
+    void recordImguiCommandBuffer(uint32_t image_index) const;
+
+    void initImgui() const;
 
     void createSyncObject();
 
@@ -164,6 +169,7 @@ private:
     //-------------------------
 
     void UpdateMVPUniformBuffer() const;
+    void UpdateImGui() const;
 
     //-------------------------
 
