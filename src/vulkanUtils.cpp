@@ -8,8 +8,6 @@ import vulkan_hpp;
 #include <iostream>
 #include <vector>
 
-#include "vulkan/vulkan_raii.hpp"
-
 void RequiredQueueFamilyIndices::Populate(const vk::raii::PhysicalDevice &device, const vk::raii::SurfaceKHR &surface) {
     const auto queues_family_properties = device.getQueueFamilyProperties();
 

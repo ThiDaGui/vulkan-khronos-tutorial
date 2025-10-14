@@ -22,8 +22,21 @@ import vulkan_hpp;
 #include "stb_image.h"
 
 //tiny_obj_loader
-#include "../external/tiny_obj_loader.h"
 #include "tiny_obj_loader.h"
+
+//imgui
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_vulkan.h"
+
+void check_vk_result(VkResult err)
+{
+    if (err == VK_SUCCESS)
+        return;
+    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    if (err < 0)
+        abort();
+}
 
 VKAPI_ATTR vk::Bool32 VKAPI_CALL
 debugCallback(const vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
