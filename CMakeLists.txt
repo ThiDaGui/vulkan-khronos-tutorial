@@ -72,6 +72,7 @@ add_executable(drawTriangleCpp
 target_include_directories(drawTriangleCpp PRIVATE
         "${Vulkan_INCLUDE_DIR}"
         "${CMAKE_BINARY_DIR}"
+        external
 )
 
 set_target_properties(drawTriangleCpp PROPERTIES

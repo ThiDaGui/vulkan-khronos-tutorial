@@ -19,10 +19,11 @@ import vulkan_hpp;
 #include "config.hh"
 
 //stb_image
-#include "../external/stb_image.h"
+#include "stb_image.h"
 
 //tiny_obj_loader
 #include "../external/tiny_obj_loader.h"
+#include "tiny_obj_loader.h"
 
 VKAPI_ATTR vk::Bool32 VKAPI_CALL
 debugCallback(const vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
