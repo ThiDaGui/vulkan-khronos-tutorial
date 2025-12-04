@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "helloTriangleApplication.hh"
+#include "engine/vk_engine.hh"
 
 class GLFWRaii {
 public:
@@ -17,10 +18,8 @@ public:
 };
 
 int main(int argc, char *argv[]) {
-    GLFWRaii glfw_raii{};
-
     try {
-        HelloTriangleApplicationCpp app{};
+        vk_tutorial::VkEngine app{};
         app.run();
     } catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;
