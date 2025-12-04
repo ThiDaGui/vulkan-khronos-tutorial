@@ -9,7 +9,6 @@ import vulkan_hpp;
 #include <set>
 #include <sstream>
 #include <unordered_map>
-#include <vulkan/vulkan_core.h>
 
 //glm
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -30,9 +29,9 @@ import vulkan_hpp;
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
 
-void check_vk_result(VkResult err)
+void check_vk_result(const VkResult err)
 {
-    if (VK_SUCCESS == err)
+    if (static_cast<VkResult>(vk::Result::eSuccess) == err)
         return;
     fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
     if (err < 0)
@@ -152,7 +151,7 @@ void HelloTriangleApplicationCpp::initVulkan() {
 
     createCommandBuffers();
 
-    recordCommandBuffers();
+    //recordCommandBuffers();
 
     createSyncObject();
 }
@@ -785,7 +784,6 @@ void HelloTriangleApplicationCpp::createVertexBuffer()
 
     createBuffer(
         vertex_buffer_size,
-
         vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         vertex_buffer_,
@@ -926,7 +924,6 @@ void HelloTriangleApplicationCpp::createCommandBuffers() {
     };
 
     command_buffers_ = vk::raii::CommandBuffers{device_, command_buffer_allocate_info};
-    imgui_command_buffers_ = vk::raii::CommandBuffers(device_, command_buffer_allocate_info);
 }
 
 void HelloTriangleApplicationCpp::recordCommandBuffers() const {
@@ -1014,16 +1011,8 @@ void HelloTriangleApplicationCpp::recordCommandBuffer(const uint32_t image_index
 
     command_buffers_[image_index].endRendering();
 
-    command_buffers_[image_index].end();
-}
-
-void HelloTriangleApplicationCpp::recordImguiCommandBuffer(
-    const uint32_t image_index) const
-{
-    imgui_command_buffers_[image_index].begin({});
-
     transitionImageLayout(
-        imgui_command_buffers_[image_index],
+        command_buffers_[image_index],
         swapchain_images_[image_index],
         1,
         swapchain_image_format_,
@@ -1033,29 +1022,30 @@ void HelloTriangleApplicationCpp::recordImguiCommandBuffer(
         vk::AccessFlagBits2::eColorAttachmentWrite,
         vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         vk::AccessFlagBits2::eColorAttachmentWrite
-        );
+    );
 
-    const vk::RenderingAttachmentInfo attachment_info = {
+    const vk::RenderingAttachmentInfo imgui_attachment_info = {
         .imageView = swapchain_image_views_[image_index],
         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
         .loadOp = vk::AttachmentLoadOp::eLoad,
         .storeOp = vk::AttachmentStoreOp::eStore,
     };
 
-    const vk::RenderingInfo rendering_info = {
+    const vk::RenderingInfo imgui_rendering_info = {
         .renderArea = {.offset = {0, 0}, .extent = swapchain_extent_},
         .layerCount = 1,
         .colorAttachmentCount = 1,
-        .pColorAttachments = &attachment_info,
+        .pColorAttachments = &imgui_attachment_info,
     };
 
-    imgui_command_buffers_[image_index].beginRendering(rendering_info);
+    command_buffers_[image_index].beginRendering(imgui_rendering_info);
 
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *imgui_command_buffers_[image_index]);
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *command_buffers_[image_index]);
 
-    imgui_command_buffers_[image_index].endRendering();
+    command_buffers_[image_index].endRendering();
+
     transitionImageLayout(
-        imgui_command_buffers_[image_index],
+        command_buffers_[image_index],
         swapchain_images_[image_index],
         1,
         swapchain_image_format_,
@@ -1065,9 +1055,9 @@ void HelloTriangleApplicationCpp::recordImguiCommandBuffer(
         vk::AccessFlagBits2::eColorAttachmentWrite,
         vk::PipelineStageFlagBits2::eBottomOfPipe,
         {}
-        );
+    );
 
-    imgui_command_buffers_[image_index].end();
+    command_buffers_[image_index].end();
 }
 
 void HelloTriangleApplicationCpp::initImgui() const
@@ -1156,18 +1146,14 @@ void HelloTriangleApplicationCpp::drawFrame() {
     image_index_ = image_index;
 
     Update();
-    std::array<vk::CommandBuffer, 2> command_buffers {
-        command_buffers_[image_index_],
-        imgui_command_buffers_[image_index_],
-    };
 
     constexpr vk::PipelineStageFlags wait_destination_stage_mask{vk::PipelineStageFlagBits::eColorAttachmentOutput};
     const vk::SubmitInfo submit_info{
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &*present_complete_semaphores_[present_semaphore_index],
         .pWaitDstStageMask = &wait_destination_stage_mask,
-        .commandBufferCount = command_buffers.size(),
-        .pCommandBuffers = command_buffers.data(),
+        .commandBufferCount = 1,
+        .pCommandBuffers = &*command_buffers_[image_index_],
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &*render_finished_semaphores_[image_index_],
     };
@@ -1198,7 +1184,9 @@ void HelloTriangleApplicationCpp::drawFrame() {
 void HelloTriangleApplicationCpp::Update() const
 {
     UpdateMVPUniformBuffer();
+
     UpdateImGui();
+    UpdateCommandBuffer();
 }
 
 void HelloTriangleApplicationCpp::UpdateMVPUniformBuffer() const
@@ -1227,8 +1215,11 @@ void HelloTriangleApplicationCpp::UpdateImGui() const
         ImGui::ShowDemoWindow(&show_demo_window);
 
     ImGui::Render();
-    recordImguiCommandBuffer(image_index_);
+}
 
+void HelloTriangleApplicationCpp::UpdateCommandBuffer() const
+{
+    recordCommandBuffer(image_index_);
 }
 
 void HelloTriangleApplicationCpp::setupDebugMessenger() {

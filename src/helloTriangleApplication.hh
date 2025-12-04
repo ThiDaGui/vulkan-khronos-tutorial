@@ -63,7 +63,6 @@ class HelloTriangleApplicationCpp {
     vk::raii::CommandPool command_pool_ = nullptr;
     vk::raii::CommandPool transient_command_pool_ = nullptr;
     vk::raii::CommandBuffers command_buffers_ = nullptr;
-    vk::raii::CommandBuffers imgui_command_buffers_ = nullptr;
 
     std::vector<vk::raii::Semaphore> present_complete_semaphores_;
     std::vector<vk::raii::Semaphore> render_finished_semaphores_;
@@ -163,6 +162,7 @@ private:
 
     void UpdateMVPUniformBuffer() const;
     void UpdateImGui() const;
+    void UpdateCommandBuffer() const;
 
     //-------------------------
 
