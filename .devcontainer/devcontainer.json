@@ -1,0 +1,60 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/cpp
+{
+	"name": "C++",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "gcc -v",
+
+	// Configure tool-specific properties.
+  "customizations" : {
+    "jetbrains" : {
+      "backend" : "CLion"
+    }
+  },
+
+  "runArgs": [
+    "--userns=keep-id",
+    '--security-opt=label=disable',
+    "--gpus=all",
+    "--group-add", "17",
+    "--group-add", "26",
+    "--group-add", "303"
+  ],
+
+  "containerEnv": {
+    "HOME": "/home/vscode"
+
+  },
+  remoteEnv: {
+    "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
+    "XDG_RUNTIME_DIR": "/tmp"
+  },
+
+  mounts: [
+    {
+      "source": "${localEnv:XDG_RUNTIME_DIR}/${localEnv:WAYLAND_DISPLAY}",
+      "target": "/tmp/wayland-0",
+      "type": "bind"
+    },
+    {
+      "source": "/dev/dri",
+      "target": "/dev/dri",
+      "type": "bind"
+    },
+    {
+      "source": "/dev/snd",
+      "target": "/dev/snd",
+      "type": "bind",
+    }
+  ]
+}
