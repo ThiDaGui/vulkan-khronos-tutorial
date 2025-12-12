@@ -5,7 +5,6 @@
 #include "vk_engine.hh"
 
 #include <iostream>
-#include <memory>
 #include <stdexcept>
 #include <GLFW/glfw3.h>
 
@@ -108,18 +107,30 @@ void VkEngine::createDebugMessenger()
 
 void VkEngine::pickPhysicalDevice(const std::vector<const char *> & device_extensions)
 {
-    using GradeDeviceType = std::pair<const vk::raii::PhysicalDevice &, uint32_t>;
-
     std::vector<vk::raii::PhysicalDevice> physical_devices = instance_.enumeratePhysicalDevices();
     if (physical_devices.empty())
         throw std::runtime_error("Failed to find GPU with Vulkan support!");
 
-    std::vector<GradeDeviceType> grades{};
+    std::vector<uint32_t> grades{};
     grades.reserve(physical_devices.size());
 
     for (const auto &physical_device : physical_devices) {
-        grades.emplace_back(physical_device, gradePhysicalDevice(physical_device));
+        grades.emplace_back(gradePhysicalDevice(physical_device));
     }
+
+    uint32_t best_grade = grades[0];
+    uint32_t best_grade_index = 0;
+    for (uint32_t i = 1; i < grades.size(); i++) {
+        if (grades[i] > best_grade) {
+            best_grade = grades[i];
+            best_grade_index = i;
+        }
+    }
+
+    if (best_grade == 0)
+        throw std::runtime_error("No GPU support required features!");
+
+    physical_device_ = physical_devices[best_grade_index];
 }
 
 uint32_t VkEngine::gradePhysicalDevice(
@@ -146,6 +157,11 @@ uint32_t VkEngine::gradePhysicalDevice(
         score += 1;
         break;
     }
+
+    if (device_features.samplerAnisotropy)
+        score += static_cast<uint32_t>(device_properties.limits.maxSamplerAnisotropy) * 10;
+
+    return score;
 }
 
 void VkEngine::draw()
