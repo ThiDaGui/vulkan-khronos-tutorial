@@ -67,7 +67,7 @@ private:
 
     void pickPhysicalDevice(const std::vector<const char *> & device_extensions);
 
-    static uint32_t gradePhysicalDevice(const vk::raii::PhysicalDevice &physical_device);
+    static uint32_t gradePhysicalDevice(const vk::raii::PhysicalDevice &physical_device, const std::vector<const char *> &required_extensions);
 
     void draw();
 };

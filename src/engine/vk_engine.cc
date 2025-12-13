@@ -4,6 +4,8 @@
 
 #include "vk_engine.hh"
 
+#include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <GLFW/glfw3.h>
@@ -115,7 +117,7 @@ void VkEngine::pickPhysicalDevice(const std::vector<const char *> & device_exten
     grades.reserve(physical_devices.size());
 
     for (const auto &physical_device : physical_devices) {
-        grades.emplace_back(gradePhysicalDevice(physical_device));
+        grades.emplace_back(gradePhysicalDevice(physical_device, device_extensions));
     }
 
     uint32_t best_grade = grades[0];
@@ -134,7 +136,8 @@ void VkEngine::pickPhysicalDevice(const std::vector<const char *> & device_exten
 }
 
 uint32_t VkEngine::gradePhysicalDevice(
-    const vk::raii::PhysicalDevice &physical_device)
+    const vk::raii::PhysicalDevice &physical_device,
+    const std::vector<const char *> &required_extensions)
 {
     const auto &device_properties = physical_device.getProperties();
     const auto &device_features = physical_device.getFeatures();
@@ -142,6 +145,14 @@ uint32_t VkEngine::gradePhysicalDevice(
 
     if (device_properties.apiVersion < vk::ApiVersion13)
         return 0;
+
+    for (const char * const required_extension: required_extensions) {
+        if (std::ranges::none_of(device_extensions.begin(), device_extensions.end(),
+            [required_extension](const vk::ExtensionProperties &device_extension) {
+                return std::strcmp(device_extension.extensionName, required_extension) == 0;
+            }))
+            return 0;
+    }
 
     uint32_t score = 0;
     switch (device_properties.deviceType) {
