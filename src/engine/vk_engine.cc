@@ -57,16 +57,14 @@ void VkEngine::initVulkan()
 #ifndef NDEBUG
     createDebugMessenger();
 #endif
-
-    std::vector<const char *> device_extensions{};
-    pickPhysicalDevice(device_extensions);
+    pickPhysicalDevice(required_device_extensions);
 }
 
 void VkEngine::createInstance(
     const std::vector<const char *> &instance_extensions,
     const std::vector<const char *> &instance_layers)
 {
-    constexpr  vk::ApplicationInfo application_info = {
+    constexpr vk::ApplicationInfo application_info = {
         .pApplicationName = "Vulkan Tutorial",
         .applicationVersion = vk::makeVersion(1, 0, 0),
         .pEngineName = "No Engine",
@@ -107,9 +105,9 @@ void VkEngine::createDebugMessenger()
     debug_messenger_ = instance_.createDebugUtilsMessengerEXT(messenger_create_info);
 }
 
-void VkEngine::pickPhysicalDevice(const std::vector<const char *> & device_extensions)
+void VkEngine::pickPhysicalDevice(const std::span<const char * const> device_extensions)
 {
-    std::vector<vk::raii::PhysicalDevice> physical_devices = instance_.enumeratePhysicalDevices();
+    const std::vector<vk::raii::PhysicalDevice> physical_devices = instance_.enumeratePhysicalDevices();
     if (physical_devices.empty())
         throw std::runtime_error("Failed to find GPU with Vulkan support!");
 
@@ -135,9 +133,34 @@ void VkEngine::pickPhysicalDevice(const std::vector<const char *> & device_exten
     physical_device_ = physical_devices[best_grade_index];
 }
 
+void VkEngine::createDevice()
+{
+    constexpr vk::PhysicalDeviceFeatures physical_device_features = {
+        .samplerAnisotropy = true
+    };
+
+    const vk::StructureChain<vk::PhysicalDeviceFeatures2,
+                       vk::PhysicalDeviceVulkan11Features,
+                       vk::PhysicalDeviceVulkan13Features,
+                       vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> feature_chain = {
+        {.features = physical_device_features},
+        {.shaderDrawParameters = true},
+        {.synchronization2 = true, .dynamicRendering = true},
+        {.extendedDynamicState = true}
+    };
+
+    vk::DeviceCreateInfo create_info = {
+        .pNext = feature_chain.get(),
+        .enabledExtensionCount = static_cast<uint32_t>(required_device_extensions.size()),
+        .ppEnabledExtensionNames =  required_device_extensions.data(),
+    };
+
+    device_ = vk::raii::Device{physical_device_, create_info};
+}
+
 uint32_t VkEngine::gradePhysicalDevice(
     const vk::raii::PhysicalDevice &physical_device,
-    const std::vector<const char *> &required_extensions)
+    const std::span<const char * const> required_extensions)
 {
     const auto &device_properties = physical_device.getProperties();
     const auto &device_features = physical_device.getFeatures();

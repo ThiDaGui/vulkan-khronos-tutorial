@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 #include <vector>
 
 import vulkan_hpp;
@@ -65,10 +66,20 @@ private:
 
     void createDebugMessenger();
 
-    void pickPhysicalDevice(const std::vector<const char *> & device_extensions);
+    void pickPhysicalDevice(std::span<const char * const> device_extensions);
 
-    static uint32_t gradePhysicalDevice(const vk::raii::PhysicalDevice &physical_device, const std::vector<const char *> &required_extensions);
+    void createDevice();
+
+    static uint32_t gradePhysicalDevice(const vk::raii::PhysicalDevice &physical_device, std::span<const char * const> required_extensions);
 
     void draw();
+
+    static constexpr std::array required_device_extensions = {
+        vk::KHRSwapchainExtensionName,
+        vk::KHRSpirv14ExtensionName,
+        vk::KHRSynchronization2ExtensionName,
+        vk::KHRCreateRenderpass2ExtensionName,
+    };
+
 };
 }
