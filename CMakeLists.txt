@@ -78,6 +78,8 @@ add_executable(drawTriangleCpp
         external/imgui/backends/imgui_impl_vulkan.cpp
         src/engine/vk_engine.cc
         src/engine/vk_engine.hh
+        src/engine/required_queue_family_indices.cc
+        src/engine/required_queue_family_indices.hh
 )
 
 target_include_directories(drawTriangleCpp PRIVATE

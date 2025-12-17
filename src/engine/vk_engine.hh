@@ -8,6 +8,8 @@
 #include <span>
 #include <vector>
 
+#include "required_queue_family_indices.hh"
+
 import vulkan_hpp;
 
 struct GLFWwindow;
@@ -27,7 +29,9 @@ struct WindowSystem {
 
     void init(std::uint32_t width, uint32_t height, const char *name);
 
-    std::vector<const char *> getRequiredExtensions() ;
+    static std::vector<const char *> getRequiredExtensions();
+
+    [[nodiscard]] vk::raii::SurfaceKHR createSurface(const vk::raii::Instance &instance) const;
 
     [[nodiscard]] bool shouldClose() const;
 };
@@ -45,12 +49,21 @@ private:
     vk::raii::Context context_{};
 
     vk::raii::Instance instance_{nullptr};
-
     vk::raii::PhysicalDevice physical_device_{nullptr};
-
     vk::raii::Device device_{nullptr};
 
     vk::raii::DebugUtilsMessengerEXT debug_messenger_{nullptr};
+
+    vk::raii::SurfaceKHR surface_{nullptr};
+
+    RequiredQueueFamilyIndices queue_family_indices_{};
+    vk::raii::Queue graphics_queue_{nullptr};
+    vk::raii::Queue present_queue_{nullptr};
+
+    vk::raii::SwapchainKHR swapchain_{nullptr};
+    vk::Format swapchain_image_format_{};
+    std::vector<vk::raii::Image> swapchain_images{};
+    std::vector<vk::raii::ImageView> swapchain_image_views_{};
 
 public:
     VkEngine();
@@ -70,7 +83,7 @@ private:
 
     void createDevice();
 
-    static uint32_t gradePhysicalDevice(const vk::raii::PhysicalDevice &physical_device, std::span<const char * const> required_extensions);
+    static uint32_t gradePhysicalDevice(const vk::raii::PhysicalDevice &physical_device, const vk::raii::SurfaceKHR &surface, std::span<const char * const> required_extensions);
 
     void draw();
 
