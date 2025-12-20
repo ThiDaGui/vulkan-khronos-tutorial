@@ -14,8 +14,8 @@ import vulkan_hpp;
 
 struct GLFWwindow;
 
-namespace vk_tutorial {
-
+namespace vk_tutorial
+{
 struct WindowSystem {
     GLFWwindow *window{nullptr};
 
@@ -32,6 +32,8 @@ struct WindowSystem {
     static std::vector<const char *> getRequiredExtensions();
 
     [[nodiscard]] vk::raii::SurfaceKHR createSurface(const vk::raii::Instance &instance) const;
+
+    [[nodiscard]] vk::Extent2D getExtent() const;
 
     [[nodiscard]] bool shouldClose() const;
 };
@@ -61,8 +63,10 @@ private:
     vk::raii::Queue present_queue_{nullptr};
 
     vk::raii::SwapchainKHR swapchain_{nullptr};
+    uint32_t swapchain_min_image_count_{};
+    vk::Extent2D swapchain_extent_{};
     vk::Format swapchain_image_format_{};
-    std::vector<vk::raii::Image> swapchain_images{};
+    std::vector<vk::Image> swapchain_images_{};
     std::vector<vk::raii::ImageView> swapchain_image_views_{};
 
 public:
@@ -82,6 +86,13 @@ private:
     void pickPhysicalDevice(std::span<const char * const> device_extensions);
 
     void createDevice();
+
+    static uint32_t chooseMinImageCount(const vk::SurfaceCapabilitiesKHR &surface_capabilities) ;
+    void createSwapchain();
+
+    [[nodiscard]] vk::Extent2D chooseExtent2D(const vk::SurfaceCapabilitiesKHR &surface_capabilities) const;
+    static vk::SurfaceFormatKHR chooseSurfaceFormat(const std::vector<vk::SurfaceFormatKHR> &surface_formats) ;
+    static vk::PresentModeKHR choosePresentMode(const std::vector<vk::PresentModeKHR> &present_modes);
 
     static uint32_t gradePhysicalDevice(const vk::raii::PhysicalDevice &physical_device, const vk::raii::SurfaceKHR &surface, std::span<const char * const> required_extensions);
 
