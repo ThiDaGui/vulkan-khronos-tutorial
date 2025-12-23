@@ -4,13 +4,12 @@
 
 #pragma once
 
-#include <cstdint>
 #include <span>
 #include <vector>
 
-#include "required_queue_family_indices.hh"
+#include <vulkan/vulkan_raii.hpp>
 
-import vulkan_hpp;
+#include "required_queue_family_indices.hh"
 
 struct GLFWwindow;
 
@@ -27,7 +26,7 @@ struct WindowSystem {
     WindowSystem(WindowSystem &&other) = delete;
     WindowSystem &operator=(WindowSystem &&other) = delete;
 
-    void init(std::uint32_t width, uint32_t height, const char *name);
+    void init(std::uint32_t width, std::uint32_t height, const char *name);
 
     static std::vector<const char *> getRequiredExtensions();
 

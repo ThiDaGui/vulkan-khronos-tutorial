@@ -4,11 +4,11 @@
 
 #pragma once
 
-import vulkan_hpp;
-
 #include <functional>
 
 #include <glm/glm.hpp>
+
+#include <vulkan/vulkan.hpp>
 
 struct Vertex {
     glm::vec3 position;

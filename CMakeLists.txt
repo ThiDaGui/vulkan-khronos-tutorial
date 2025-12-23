@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.28)
-project(vulkan_khronos_tutorial CXX)
+cmake_minimum_required(VERSION 3.30)
+project(vulkan_khronos_tutorial LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
@@ -30,41 +30,11 @@ configure_file(config.hh.in config.hh @ONLY)
 
 add_slang_shader(triangle_slang SOURCES ${SHADER_SOURCE_DIR}/triangle.slang)
 
-add_library(VulkanCppModule)
-add_library(Vulkan::cppm ALIAS VulkanCppModule)
-
-target_compile_definitions(VulkanCppModule PUBLIC
-        VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
-        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
-)
-
-target_include_directories(VulkanCppModule PRIVATE
-        "${Vulkan_INCLUDE_DIR}"
-)
-
-target_link_libraries(VulkanCppModule PUBLIC
-        Vulkan::Vulkan
-)
-
-set_target_properties(VulkanCppModule PROPERTIES
-        CXX_STANDARD 20
-)
-
-target_sources(VulkanCppModule PUBLIC
-        FILE_SET cxx_modules TYPE CXX_MODULES
-        BASE_DIRS "${Vulkan_INCLUDE_DIR}"
-        FILES "${Vulkan_INCLUDE_DIR}/vulkan/vulkan.cppm"
-)
-
 add_executable(drawTriangleCpp
-        src/helloTriangleApplication.cpp
-        src/vulkanUtils.cpp
         src/stb_image.cc
         src/vertex.cc
         src/main.cpp
 
-        src/helloTriangleApplication.hh
-        src/vulkanUtils.hh
         src/vertex.hh
         src/tiny_obj_loader.cc
 
@@ -93,8 +63,12 @@ set_target_properties(drawTriangleCpp PROPERTIES
         CXX_STANDARD 20
 )
 
+target_compile_definitions(drawTriangleCpp PUBLIC
+        VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+)
 target_link_libraries(drawTriangleCpp PRIVATE
-        Vulkan::cppm
+        Vulkan::Vulkan
         glfw
 )
 

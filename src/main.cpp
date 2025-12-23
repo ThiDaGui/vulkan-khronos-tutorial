@@ -2,20 +2,7 @@
 #include <exception>
 #include <iostream>
 
-#include "helloTriangleApplication.hh"
 #include "engine/vk_engine.hh"
-
-class GLFWRaii {
-public:
-    GLFWRaii() {
-        if (!glfwInit())
-        throw std::runtime_error("failed to initialize GLFW!");
-    }
-
-    ~GLFWRaii() {
-        glfwTerminate();
-    }
-};
 
 int main(int argc, char *argv[]) {
     try {

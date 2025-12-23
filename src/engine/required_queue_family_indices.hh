@@ -1,10 +1,10 @@
 #pragma once
 
-import vulkan_hpp;
-
-#include <cstdint>
 #include <optional>
 #include <vector>
+
+#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace vk_tutorial
 {
