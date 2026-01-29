@@ -1,5 +1,3 @@
-import vulkan_hpp;
-
 #include "helloTriangleApplication.hh"
 
 #include <algorithm>
@@ -19,10 +17,10 @@ import vulkan_hpp;
 #include "config.hh"
 
 //stb_image
-#include "stb_image.h"
+#include "../external/stb_image/stb_image.h"
 
 //tiny_obj_loader
-#include "tiny_obj_loader.h"
+#include "../external/tiny_obj_loader/tiny_obj_loader.h"
 
 //imgui
 #include "imgui.h"
@@ -552,7 +550,7 @@ void HelloTriangleApplicationCpp::createGraphicPipeline() {
 
     const vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
         .rasterizationSamples = msaa_samples_,
-        .sampleShadingEnable = vk::False,
+        .sampleShadingEnable = vk::False
     };
 
     constexpr vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info = {

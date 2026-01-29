@@ -1,5 +1,3 @@
-import vulkan_hpp;
-
 #include "vulkanUtils.hh"
 
 #include <filesystem>
@@ -7,6 +5,9 @@ import vulkan_hpp;
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
+
+#include <vulkan/vulkan_raii.hpp>
+#include <vulkan/vulkan_format_traits.hpp>
 
 void RequiredQueueFamilyIndices::Populate(const vk::raii::PhysicalDevice &device, const vk::raii::SurfaceKHR &surface) {
     const auto queues_family_properties = device.getQueueFamilyProperties();
@@ -260,10 +261,10 @@ void generateMips(
     };
 
     vk::ArrayWrapper1D<vk::Offset3D, 2> src_offsets, dst_offsets;
-    src_offsets[0] = {0, 0, 0};
-    src_offsets[1] = {image_width, image_height, 1};
-    dst_offsets[0] = {0, 0, 0};
-    dst_offsets[1] = {std::max(image_width >> 1, 1), std::max(image_height >> 1, 1), 1};
+    src_offsets[0] = vk::Offset3D{0, 0, 0};
+    src_offsets[1] = vk::Offset3D{image_width, image_height, 1};
+    dst_offsets[0] = vk::Offset3D{0, 0, 0};
+    dst_offsets[1] = vk::Offset3D{std::max(image_width >> 1, 1), std::max(image_height >> 1, 1), 1};
 
     for (uint32_t i = 1; i < mip_levels; i++) {
         barrier.subresourceRange.baseMipLevel = i - 1;
@@ -279,7 +280,7 @@ void generateMips(
         command_buffer.blitImage(image, vk::ImageLayout::eTransferSrcOptimal, image, vk::ImageLayout::eTransferDstOptimal, image_blit, vk::Filter::eLinear);
 
         src_offsets[1] = dst_offsets[1];
-        dst_offsets[1] = {
+        dst_offsets[1] = vk::Offset3D{
             std::max(dst_offsets[1].x >> 1, 1),
             std::max(dst_offsets[1].y >> 1, 1),
             1
@@ -317,7 +318,7 @@ std::string sampleCountToString(const vk::SampleCountFlagBits sample)
         return "4X MSAA";
     case vk::SampleCountFlagBits::e2:
         return "2X MSAA";
-    case vk::SampleCountFlagBits::e1:
+    default:
         return "NO MSAA";
     }
 }

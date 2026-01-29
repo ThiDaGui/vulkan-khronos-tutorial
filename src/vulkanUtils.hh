@@ -1,10 +1,10 @@
 #pragma once
 
-import vulkan_hpp;
-
 #include <filesystem>
 #include <optional>
 #include <vector>
+
+#include <vulkan/vulkan_raii.hpp>
 
 struct RequiredQueueFamilyIndices {
     std::optional<uint32_t> graphic_queue = std::nullopt;

@@ -30,14 +30,7 @@ configure_file(config.hh.in config.hh @ONLY)
 
 add_slang_shader(triangle_slang SOURCES ${SHADER_SOURCE_DIR}/triangle.slang)
 
-add_executable(drawTriangleCpp
-        src/stb_image.cc
-        src/vertex.cc
-        src/main.cpp
-
-        src/vertex.hh
-        src/tiny_obj_loader.cc
-
+add_library(Imgui
         external/imgui/imgui.cpp
         external/imgui/imgui_demo.cpp
         external/imgui/imgui_draw.cpp
@@ -46,17 +39,65 @@ add_executable(drawTriangleCpp
 
         external/imgui/backends/imgui_impl_glfw.cpp
         external/imgui/backends/imgui_impl_vulkan.cpp
-        src/engine/vk_engine.cc
-        src/engine/vk_engine.hh
-        src/engine/required_queue_family_indices.cc
-        src/engine/required_queue_family_indices.hh
 )
 
-target_include_directories(drawTriangleCpp PRIVATE
-        "${Vulkan_INCLUDE_DIR}"
-        "${CMAKE_BINARY_DIR}"
-        external
-        external/imgui
+target_sources(Imgui
+        PUBLIC
+        FILE_SET public_headers
+        TYPE HEADERS
+        BASE_DIRS external/imgui
+        FILES
+            external/imgui/imgui.h
+            external/imgui/backends/imgui_impl_vulkan.h
+            external/imgui/backends/imgui_impl_glfw.h
+)
+
+target_include_directories(Imgui
+        PRIVATE "${Vulkan_INCLUDE_DIR}"
+)
+
+add_executable(drawTriangleCpp
+        src/main.cpp
+
+        external/stb_image/stb_image.cc
+        external/tiny_obj_loader/tiny_obj_loader.cc
+        external/vk_mem_alloc/vma_usage.cc
+
+        src/engine/vk_engine.cc
+        src/engine/required_queue_family_indices.cc
+        src/engine/swapchain.cc
+        src/engine/window_system.cc
+        src/engine/core.cc
+
+        src/types/image.cc
+        src/types/pipeline.cc
+)
+
+target_sources(drawTriangleCpp
+    PRIVATE
+        FILE_SET internal_headers
+        TYPE HEADERS
+        BASE_DIRS
+            "${Vulkan_INCLUDE_DIR}"
+            "${CMAKE_BINARY_DIR}"
+            external
+            src
+        FILES
+            "external/stb_image/stb_image.h"
+            "external/tiny_obj_loader/tiny_obj_loader.h"
+            "external/vk_mem_alloc/vk_mem_alloc.h"
+            "external/vk_mem_alloc/vma_usage.hh"
+
+            "src/engine/vk_engine.hh"
+            "src/engine/required_queue_family_indices.hh"
+            "src/engine/swapchain.hh"
+            "src/engine/window_system.hh"
+            "src/engine/core.hh"
+
+            "src/types/image.hh"
+            "src/types/pipeline.hh"
+
+            "${CMAKE_BINARY_DIR}/config.hh"
 )
 
 set_target_properties(drawTriangleCpp PROPERTIES
@@ -70,6 +111,7 @@ target_compile_definitions(drawTriangleCpp PUBLIC
 target_link_libraries(drawTriangleCpp PRIVATE
         Vulkan::Vulkan
         glfw
+        Imgui
 )
 
 add_dependencies(drawTriangleCpp triangle_slang)
