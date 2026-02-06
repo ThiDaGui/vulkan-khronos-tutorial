@@ -1,10 +1,10 @@
 #pragma once
 
 #include <vulkan/vulkan_raii.hpp>
-#include <vk_mem_alloc/vma_usage.hh>
 
 #include "required_queue_family_indices.hh"
 #include "window_system.hh"
+#include "types/mem_allocator.hh"
 
 namespace vk_tutorial
 {
@@ -16,7 +16,7 @@ struct Core
     vk::raii::DebugUtilsMessengerEXT debug_messenger_{nullptr};
     vk::raii::PhysicalDevice physical_device_{nullptr};
     vk::raii::Device device_{nullptr};
-    VmaAllocator vma_allocator{};
+    vk_types::MemAllocator vma_allocator{};
 
     vk::raii::SurfaceKHR surface_{nullptr};
 

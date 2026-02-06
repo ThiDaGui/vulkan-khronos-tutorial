@@ -19,7 +19,7 @@ public:
     Image() = default;
 
     explicit Image(const vk::raii::Device& device,
-                   const VmaAllocator& vma_allocator,
+                   VmaAllocator vma_allocator,
                    const vk::ImageCreateInfo& image_create_info,
                    const VmaAllocationCreateInfo& alloc_create_info,
                    vk::ImageViewCreateInfo& image_view_create_info);

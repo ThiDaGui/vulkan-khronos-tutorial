@@ -205,6 +205,16 @@ void Core::init(std::span<const char* const> instance_extensions,
         graphics_queue = vk::raii::Queue{device_, queue_family_indices.graphics_queue_family.value(), 0};
         present_queue = vk::raii::Queue{device_, queue_family_indices.present_queue_family.value(), 0};
     }
+
+    // memory allocator
+    {
+        VmaAllocatorCreateInfo allocator_info = {
+            .physicalDevice = *physical_device_,
+            .device = *device_,
+            .instance = *instance_,
+        };
+        vma_allocator = vk_types::MemAllocator(&allocator_info);
+    }
     // Create command pools
     {
         vk::CommandPoolCreateInfo graphics_command_pool_create_info = {
