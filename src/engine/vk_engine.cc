@@ -50,14 +50,21 @@ void VkEngine::run()
 void VkEngine::draw()
 {
     if (vk::Result::eSuccess != core_.device_.waitForFences(*in_flight_fences_[fence_index_], vk::True,
-                                                            std::numeric_limits<uint64_t>::max()))
+                                                            -1))
         throw std::runtime_error("Error while waiting for fence !");
 
     core_.device_.resetFences(*in_flight_fences_[fence_index_]);
 
-    const uint32_t image_index = swapchain_.Acquire(semaphore_index_);
+    auto [result, image_index] = swapchain_.Acquire(semaphore_index_);
+    if (vk::Result::eErrorOutOfDateKHR == result)
+    {
+        swapchain_.recreate(core_, window_system_);
+        return;
+    }
+    if (vk::Result::eSuccess != result && vk::Result::eSuboptimalKHR != result)
+        throw std::runtime_error("Failed to acquire swapchain image !");
 
-    auto & [image_view, command_buffer, is_presentable_semaphore] = swapchain_.frames_data[image_index];
+    auto& [image_view, command_buffer, is_presentable_semaphore] = swapchain_.frames_data[image_index];
 
     {
         command_buffer.begin({});
@@ -160,7 +167,12 @@ void VkEngine::draw()
 
     core_.graphics_queue.submit(submit_info, in_flight_fences_[fence_index_]);
 
-    swapchain_.Present(core_.present_queue, image_index);
+    result = swapchain_.Present(core_.present_queue, image_index);
+    if (vk::Result::eErrorOutOfDateKHR == result || vk::Result::eSuboptimalKHR == result || window_system_.resized)
+    {
+        window_system_.resized = false;
+        swapchain_.recreate(core_, window_system_);
+    }
 
     semaphore_index_ = (semaphore_index_ + 1) % swapchain_.image_count;
     fence_index_ = (fence_index_ + 1) % FRAME_OVERLAP;

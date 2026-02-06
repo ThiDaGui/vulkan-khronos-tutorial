@@ -94,18 +94,12 @@ void Swapchain::init(const Core& core,
     }
 }
 
-uint32_t Swapchain::Acquire(const uint32_t semaphore_index) const
+std::pair<vk::Result, uint32_t> Swapchain::Acquire(const uint32_t semaphore_index) const
 {
-    auto [result, image_index] =
-        vk_swapchain.acquireNextImage(-1, *frame_acquired_semaphores[semaphore_index], nullptr);
-
-    if (vk::Result::eSuccess != result)
-        throw std::runtime_error("Failed to acquire swapchain image!");
-
-    return image_index;
+    return vk_swapchain.acquireNextImage(-1, *frame_acquired_semaphores[semaphore_index], nullptr);
 }
 
-void Swapchain::Present(const vk::raii::Queue& present_queue, uint32_t image_index) const
+vk::Result Swapchain::Present(const vk::raii::Queue& present_queue, uint32_t image_index) const
 {
     const vk::PresentInfoKHR present_info = {
         .waitSemaphoreCount = 1,
@@ -115,10 +109,15 @@ void Swapchain::Present(const vk::raii::Queue& present_queue, uint32_t image_ind
         .pImageIndices = &image_index,
     };
 
-    vk::Result result = present_queue.presentKHR(present_info);
+    return present_queue.presentKHR(present_info);
+}
 
-    if (vk::Result::eSuccess != result)
-        throw std::runtime_error("Failed to present swapchain image!");
+void Swapchain::recreate(const Core& core, const WindowSystem& window_system)
+{
+    core.device_.waitIdle();
+    frames_data.clear();
+    vk_swapchain.clear();
+    init(core, window_system);
 }
 
 

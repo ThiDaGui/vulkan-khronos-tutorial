@@ -20,8 +20,10 @@ struct Swapchain
     void init(const Core& core,
               const WindowSystem& window_system);
 
-    [[nodiscard]] uint32_t Acquire(uint32_t semaphore_index) const;
-    void Present(const vk::raii::Queue& present_queue, uint32_t image_index) const;
+    [[nodiscard]] std::pair<vk::Result, uint32_t> Acquire(uint32_t semaphore_index) const;
+    [[nodiscard]] vk::Result Present(const vk::raii::Queue& present_queue, uint32_t image_index) const;
+
+    void recreate(const Core& core, const WindowSystem& window_system);
 
     vk::raii::SwapchainKHR vk_swapchain{nullptr};
     uint32_t min_image_count{};

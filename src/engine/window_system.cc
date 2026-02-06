@@ -4,6 +4,12 @@
 
 namespace vk_tutorial
 {
+void framebufferResizeCallback(GLFWwindow *window, int width, int height)
+{
+    const auto window_system = static_cast<WindowSystem *>(glfwGetWindowUserPointer(window));
+    window_system->resized = true;
+}
+
 void WindowSystem::init(const uint32_t width, const uint32_t height, const char* name)
 {
     glfwInit();
@@ -11,6 +17,8 @@ void WindowSystem::init(const uint32_t width, const uint32_t height, const char*
     window = glfwCreateWindow(static_cast<int>(width), static_cast<int>(height), name, nullptr, nullptr);
     if (nullptr == window)
         throw std::runtime_error("Failed to create GLFW window!");
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+    glfwSetWindowUserPointer(window, this);
 }
 
 std::vector<const char*> WindowSystem::getRequiredExtensions()
@@ -41,6 +49,11 @@ vk::Extent2D WindowSystem::getExtent() const
 {
     int width, height;
     glfwGetWindowSize(window, &width, &height);
+    while (0 == width && 0 == height)
+    {
+        glfwWaitEvents();
+        glfwGetWindowSize(window, &width, &height);
+    }
     return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
 }
 

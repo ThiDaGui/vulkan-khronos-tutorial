@@ -9,6 +9,7 @@ namespace vk_tutorial
 {
 struct WindowSystem {
     GLFWwindow *window{nullptr};
+    bool resized{false};
 
     WindowSystem() = default;
     ~WindowSystem();
