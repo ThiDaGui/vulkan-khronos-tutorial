@@ -17,20 +17,23 @@ Image::Image(const vk::raii::Device& device, const VmaAllocator& vma_allocator,
 
 Image::Image(Image&& other) noexcept
 {
-    std::swap(image_, other.image_);
-    std::swap(image_view_, other.image_view_);
-    std::swap(image_memory_, other.image_memory_);
-    image_extent_ = other.image_extent_;
-    image_format_ = other.image_format_;
+    swap(other);
 }
 
 Image& Image::operator=(Image&& other) noexcept
 {
+    swap(other);
+    return *this;
+}
+
+void Image::swap(Image& other) noexcept
+{
+    if (this == &other)
+        return
     std::swap(image_, other.image_);
     std::swap(image_view_, other.image_view_);
     std::swap(image_memory_, other.image_memory_);
-    image_extent_ = other.image_extent_;
-    image_format_ = other.image_format_;
-    return *this;
+    std::swap(image_extent_, other.image_extent_);
+    std::swap(image_format_, other.image_format_);
 }
 }

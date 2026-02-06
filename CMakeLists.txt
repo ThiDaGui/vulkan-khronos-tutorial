@@ -97,6 +97,8 @@ target_sources(drawTriangleCpp
             "src/types/image.hh"
             "src/types/pipeline.hh"
 
+            "src/utils/types.hh"
+
             "${CMAKE_BINARY_DIR}/config.hh"
 )
 

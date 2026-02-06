@@ -6,9 +6,11 @@
 #include <filesystem>
 #include <vulkan/vulkan_raii.hpp>
 
+#include "utils/types.hh"
+
 namespace vk_tutorial::vk_types
 {
-class Pipeline
+class Pipeline : NonCopyable
 {
     vk::raii::Pipeline pipeline_{nullptr};
     vk::raii::PipelineLayout layout_{nullptr};
@@ -18,11 +20,7 @@ public:
 
     Pipeline(vk::raii::Pipeline pipeline, vk::raii::PipelineLayout layout);
 
-    Pipeline(const Pipeline& other) = delete;
-
     Pipeline(Pipeline&& other) noexcept;
-
-    Pipeline& operator=(const Pipeline& other) = delete;
 
     Pipeline& operator=(Pipeline&& other) noexcept;
 

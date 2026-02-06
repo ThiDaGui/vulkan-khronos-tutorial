@@ -3,9 +3,11 @@
 #include <vk_mem_alloc/vma_usage.hh>
 #include <vulkan/vulkan_raii.hpp>
 
+#include "utils/types.hh"
+
 namespace vk_tutorial::vk_types
 {
-class Image
+class Image final : NonCopyable
 {
     vk::Extent3D image_extent_{};
     vk::Format image_format_{};
@@ -24,11 +26,10 @@ public:
 
     ~Image() = default;
 
-    Image(const Image& other) = delete;
-    Image operator=(const Image& other) = delete;
-
     Image(Image&& other) noexcept;
+
     Image& operator=(Image&& other) noexcept;
 
+    void swap(Image& other) noexcept;
 };
 }

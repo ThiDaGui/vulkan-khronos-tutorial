@@ -15,7 +15,7 @@
 
 namespace vk_tutorial
 {
-class VkEngine
+class VkEngine final : NonCopyable
 {
     static constexpr std::array REQUIRED_DEVICE_EXTENSIONS = {
         vk::KHRSwapchainExtensionName,
