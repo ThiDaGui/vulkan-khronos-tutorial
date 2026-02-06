@@ -1,13 +1,25 @@
-//
-// Created by damiendidier on 1/20/26.
-//
-
 #include "pipeline.hh"
 
+#include <fstream>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
-#include "vulkanUtils.hh"
+std::vector<char> readShader(const std::filesystem::path& file_path)
+{
+    std::ifstream file{file_path, std::ios::ate | std::ios::binary};
+
+    if (!file.is_open())
+        throw std::runtime_error("Failed to open file " + file_path.string());
+
+    std::vector<char> buffer(file.tellg());
+
+    file.seekg(std::ios::beg);
+    file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+
+    file.close();
+    return buffer;
+}
+
 
 namespace vk_tutorial::vk_types
 {
@@ -15,6 +27,36 @@ Pipeline::Pipeline(vk::raii::Pipeline pipeline, vk::raii::PipelineLayout layout)
     : pipeline_(std::move(pipeline))
     , layout_(std::move(layout))
 {}
+
+Pipeline::Pipeline(Pipeline&& other) noexcept
+{
+    swap(other);
+}
+
+Pipeline& Pipeline::operator=(Pipeline&& other) noexcept
+{
+    swap(other);
+    return *this;
+}
+
+void Pipeline::swap(Pipeline& other) noexcept
+
+{
+    if (this == &other)
+        return;
+    std::swap(pipeline_, other.pipeline_);
+    std::swap(layout_, other.layout_);
+}
+
+const vk::Pipeline& Pipeline::getPipeline() const
+{
+    return *pipeline_;
+}
+
+const vk::PipelineLayout& Pipeline::getLayout() const
+{
+    return *layout_;
+}
 
 Pipeline Pipeline::CreateGraphicPipeline(const vk::raii::Device& device,
                                          const std::filesystem::path& shader_path,
@@ -60,7 +102,8 @@ Pipeline Pipeline::CreateGraphicPipeline(const vk::raii::Device& device,
     };
 
     static constexpr vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info = {
-        .polygonMode = vk::PolygonMode::eFill
+        .polygonMode = vk::PolygonMode::eFill,
+        .lineWidth = 1.0
     };
 
     static constexpr vk::PipelineMultisampleStateCreateInfo multisample_state_create_info = {};
@@ -100,8 +143,8 @@ Pipeline Pipeline::CreateGraphicPipeline(const vk::raii::Device& device,
         .pNext = rendering_create_info,
         .stageCount = shader_stage_create_infos.size(),
         .pStages = shader_stage_create_infos.data(),
-        //        .pVertexInputState = &vertex_input_state_create_info,
-        //        .pInputAssemblyState = &input_assembly_state_create_info,
+        .pVertexInputState = &vertex_input_state_create_info,
+        .pInputAssemblyState = &input_assembly_state_create_info,
         .pViewportState = &viewport_state_create_info,
         .pRasterizationState = &rasterization_state_create_info,
         .pMultisampleState = &multisample_state_create_info,

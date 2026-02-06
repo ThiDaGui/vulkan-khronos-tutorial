@@ -1,3 +1,4 @@
+/*
 struct VertexInput {
     float3 position;
     float3 color;
@@ -11,25 +12,37 @@ struct MVPUniformBuffer {
 };
 ConstantBuffer<MVPUniformBuffer> mvp;
 
+*/
+
+
+static float2 positions[3] = float2[](
+	float2(0.0, -0.5),
+	float2(0.5, 0.5),
+	float2(-0.5, 0.5)
+);
+
+
+static float3 colors[3] = float3[](
+	float3(1.0, 0.0, 0.0),
+	float3(0.0, 1.0, 0.0),
+	float3(0.0, 0.0, 1.0)
+);
+
 struct VertexOutput {
     float4 sv_position : SV_Position;
     float3 frag_color;
-    float2 frag_tex_coordinate;
 };
 
 [shader("vertex")]
-VertexOutput vertMain(VertexInput in) {
+VertexOutput vertMain(uint vertexID : SV_VertexID) {
     VertexOutput output;
-    output.sv_position = mul(mvp.proj, mul(mvp.view, mul(mvp.model, float4(in.position, 1.0))));
-    output.frag_color = in.color;
-    output.frag_tex_coordinate = in.tex_coordinate;
+    output.sv_position = float4(positions[vertexID], 0.0, 1.0);
+    output.frag_color = colors[vertexID];
     return output;
 }
-
-Sampler2D texture;
 
 [shader("fragment")]
 float4 fragMain(VertexOutput inVert) : SV_Target
 {
-    return texture.Sample(inVert.frag_tex_coordinate);
+    return float4(inVert.frag_color, 1.0);
 }
