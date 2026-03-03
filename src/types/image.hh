@@ -9,27 +9,54 @@ namespace vk_tutorial::vk_types
 {
 class Image final : NonCopyable
 {
+public:
     vk::Extent3D image_extent_{};
     vk::Format image_format_{};
     vk::raii::Image image_{nullptr};
     vk::raii::ImageView image_view_{nullptr};
     VmaAllocation image_memory_{nullptr};
+    VmaAllocator vma_allocator_{};
 
-public:
     Image() = default;
 
     explicit Image(const vk::raii::Device& device,
                    VmaAllocator vma_allocator,
-                   const vk::ImageCreateInfo& image_create_info,
-                   const VmaAllocationCreateInfo& alloc_create_info,
-                   vk::ImageViewCreateInfo& image_view_create_info);
+                   vk::Format format,
+                   vk::Extent2D extent_2d,
+                   vk::ImageUsageFlags image_usage,
+                   vk::SampleCountFlagBits sample_count,
+                   VmaMemoryUsage memory_usage,
+                   vk::ImageAspectFlags image_aspect);
 
-    ~Image() = default;
+    ~Image();
 
     Image(Image&& other) noexcept;
 
     Image& operator=(Image&& other) noexcept;
 
     void swap(Image& other) noexcept;
-};
-}
+
+    void transition(const vk::raii::CommandBuffer& command_buffer,
+                    vk::PipelineStageFlagBits2 src_stage_mask,
+                    vk::AccessFlagBits2 src_access_mask,
+                    vk::PipelineStageFlagBits2 dst_stage_mask,
+                    vk::AccessFlagBits2 dst_access_mask,
+                    vk::ImageLayout old_layout,
+                    vk::ImageLayout new_layout,
+                    vk::ImageAspectFlags aspect_mask) const;
+
+    static void transition(const vk::raii::CommandBuffer& command_buffer,
+                      vk::Image image,
+                      vk::PipelineStageFlagBits2 src_stage_mask,
+                      vk::AccessFlagBits2 src_access_mask,
+                      vk::PipelineStageFlagBits2 dst_stage_mask,
+                      vk::AccessFlagBits2 dst_access_mask,
+                      vk::ImageLayout old_layout,
+                      vk::ImageLayout new_layout,
+                      vk::ImageAspectFlags aspect_mask);
+
+    void copy(const vk::raii::CommandBuffer& command_buffer,
+              const Image& dst_image) const;
+
+    void copy(const vk::raii::CommandBuffer& command_buffer, vk::Image dst_image, vk::Extent2D extent) const;
+};}

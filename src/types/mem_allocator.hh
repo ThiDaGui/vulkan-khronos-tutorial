@@ -7,7 +7,7 @@ namespace vk_tutorial::vk_types
 {
 struct MemAllocator final : NonCopyable
 {
-    ::VmaAllocator vma_allocator;
+    ::VmaAllocator vma_allocator{};
 
     constexpr MemAllocator() = default;
 
