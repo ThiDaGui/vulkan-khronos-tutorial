@@ -42,7 +42,7 @@ private:
 
     vk_types::Image color_render_target_{};
 
-	vk_types::Pipeline pipeline{nullptr, nullptr};
+	vk_types::Pipeline pipeline_{nullptr, nullptr};
 
 public:
     VkEngine();

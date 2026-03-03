@@ -42,7 +42,7 @@ add_library(Imgui
 )
 
 target_sources(Imgui
-        PUBLIC
+    PUBLIC
         FILE_SET public_headers
         TYPE HEADERS
         BASE_DIRS external/imgui
@@ -72,6 +72,8 @@ add_executable(drawTriangleCpp
         src/types/image.cc
         src/types/pipeline.cc
         src/types/mem_allocator.cc
+
+        src/utils/pipeline_builder.cc
 )
 
 target_sources(drawTriangleCpp
@@ -84,22 +86,23 @@ target_sources(drawTriangleCpp
             external
             src
         FILES
-            "external/stb_image/stb_image.h"
-            "external/tiny_obj_loader/tiny_obj_loader.h"
-            "external/vk_mem_alloc/vk_mem_alloc.h"
-            "external/vk_mem_alloc/vma_usage.hh"
+            external/stb_image/stb_image.h
+            external/tiny_obj_loader/tiny_obj_loader.h
+            external/vk_mem_alloc/vk_mem_alloc.h
+            external/vk_mem_alloc/vma_usage.hh
 
-            "src/engine/vk_engine.hh"
-            "src/engine/required_queue_family_indices.hh"
-            "src/engine/swapchain.hh"
-            "src/engine/window_system.hh"
-            "src/engine/core.hh"
+            src/engine/vk_engine.hh
+            src/engine/required_queue_family_indices.hh
+            src/engine/swapchain.hh
+            src/engine/window_system.hh
+            src/engine/core.hh
 
-            "src/types/image.hh"
-            "src/types/pipeline.hh"
-            "src/types/mem_allocator.hh"
+            src/types/image.hh
+            src/types/pipeline.hh
+            src/types/mem_allocator.hh
 
-            "src/utils/types.hh"
+            src/utils/types.hh
+            src/utils/pipeline_builder.hh
 
             "${CMAKE_BINARY_DIR}/config.hh"
 )

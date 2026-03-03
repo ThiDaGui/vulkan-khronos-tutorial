@@ -30,8 +30,8 @@ VkEngine::VkEngine()
     }
 
     std::array color_attachments = {swapchain_.image_format};
-    pipeline = vk_types::Pipeline::CreateGraphicPipeline(core_.device_, shaderPath / "triangle_slang.spv",
-                                                         color_attachments);
+    pipeline_ = vk_types::Pipeline::CreateGraphicPipeline(core_.device_, shaderPath / "triangle_slang.spv",
+                                                          color_attachments);
 
     is_initialized = true;
 }
@@ -123,7 +123,7 @@ void VkEngine::draw()
             command_buffer.setViewport(0, viewport);
             command_buffer.setScissor(0, scissor);
         }
-        command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.getPipeline());
+        command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.getPipeline());
         command_buffer.draw(3, 1, 0, 0);
         command_buffer.endRendering();
 
