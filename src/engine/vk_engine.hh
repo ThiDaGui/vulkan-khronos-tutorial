@@ -40,7 +40,7 @@ private:
     uint32_t semaphore_index_{0};
     std::vector<vk::raii::Fence> in_flight_fences_{};
 
-    vk_types::Image color_render_target_{};
+    std::vector<vk_types::Image> color_render_target_{};
 
 	vk_types::Pipeline pipeline_{nullptr, nullptr};
 

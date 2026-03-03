@@ -28,7 +28,7 @@ void Swapchain::init(const Core& core,
         .imageColorSpace = surface_format.colorSpace,
         .imageExtent = extent,
         .imageArrayLayers = 1,
-        .imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
+        .imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst,
         .preTransform = surface_capabilities.currentTransform,
         .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
         .presentMode = present_mode,
@@ -73,7 +73,7 @@ void Swapchain::init(const Core& core,
     vk::ImageViewCreateInfo image_view_create_info{
         .viewType = vk::ImageViewType::e2D,
         .format = image_format,
-        .subresourceRange = subresource_range
+        .subresourceRange = subresource_range,
     };
     const vk::CommandBufferAllocateInfo graphics_command_buffer_allocate_info = {
         .commandPool = core.graphics_command_pool,

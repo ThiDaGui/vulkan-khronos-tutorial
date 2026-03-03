@@ -29,7 +29,28 @@ VkEngine::VkEngine()
         in_flight_fences_.emplace_back(core_.device_, fence_create_info);
     }
 
-    std::array color_attachments = {swapchain_.image_format};
+    color_render_target_.reserve(FRAME_OVERLAP);
+    for (size_t i = 0; i < FRAME_OVERLAP; i++)
+    {
+        color_render_target_.emplace_back(
+            core_.device_,
+            core_.vma_allocator.vma_allocator,
+            vk::Format::eR16G16B16A16Sfloat,
+            swapchain_.extent,
+            vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eColorAttachment |
+            vk::ImageUsageFlagBits::eStorage,
+            vk::SampleCountFlagBits::e1,
+            VMA_MEMORY_USAGE_GPU_ONLY,
+            vk::ImageAspectFlagBits::eColor
+        );
+    }
+
+    std::array descriptor_entries{
+        vk_types::DescriptorAllocator::DescriptorEntry{vk::DescriptorType::eUniformBuffer, 1}
+    };
+    descriptor_allocator_ = vk_types::DescriptorAllocator{core_.device_, FRAME_OVERLAP, descriptor_entries};
+
+    std::array color_attachments = {color_render_target_[0].image_format_};
     pipeline_ = vk_types::Pipeline::CreateGraphicPipeline(core_.device_, shaderPath / "triangle_slang.spv",
                                                           color_attachments);
 
@@ -69,32 +90,17 @@ void VkEngine::draw()
     {
         command_buffer.begin({});
 
-        vk::ImageMemoryBarrier2 memory_barrier2 = {
-            .srcStageMask = vk::PipelineStageFlagBits2::eNone,
-            .srcAccessMask = vk::AccessFlagBits2::eNone,
-            .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-            .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-            .oldLayout = vk::ImageLayout::eUndefined,
-            .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .image = swapchain_.images[image_index],
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1
-            }
-        };
-
-        command_buffer.pipelineBarrier2(
-            {
-                .imageMemoryBarrierCount = 1,
-                .pImageMemoryBarriers = &memory_barrier2
-            });
+        color_render_target_[fence_index_].transition(command_buffer, vk::PipelineStageFlagBits2::eNone,
+                                                      vk::AccessFlagBits2::eNone,
+                                                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                                      vk::AccessFlagBits2::eColorAttachmentWrite,
+                                                      vk::ImageLayout::eUndefined,
+                                                      vk::ImageLayout::eColorAttachmentOptimal,
+                                                      vk::ImageAspectFlagBits::eColor);
 
         constexpr vk::ClearValue clear_color = vk::ClearColorValue{0.5f, 0.5f, 0.5f, 1.0f};
         vk::RenderingAttachmentInfo attachment_info = {
-            .imageView = image_view,
+            .imageView = color_render_target_[fence_index_].image_view_,
             .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
             .loadOp = vk::AttachmentLoadOp::eClear,
             .storeOp = vk::AttachmentStoreOp::eStore,
@@ -127,28 +133,29 @@ void VkEngine::draw()
         command_buffer.draw(3, 1, 0, 0);
         command_buffer.endRendering();
 
-        memory_barrier2 = {
-            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-            .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-            .dstStageMask = vk::PipelineStageFlagBits2::eNone,
-            .dstAccessMask = vk::AccessFlagBits2::eNone,
-            .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
-            .newLayout = vk::ImageLayout::ePresentSrcKHR,
-            .image = swapchain_.images[image_index],
-            .subresourceRange = {
-                .aspectMask = vk::ImageAspectFlagBits::eColor,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1
-            }
-        };
+        color_render_target_[fence_index_].transition(command_buffer,
+                                                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                                      vk::AccessFlagBits2::eColorAttachmentWrite,
+                                                      vk::PipelineStageFlagBits2::eTransfer,
+                                                      vk::AccessFlagBits2::eTransferRead,
+                                                      vk::ImageLayout::eColorAttachmentOptimal,
+                                                      vk::ImageLayout::eTransferSrcOptimal,
+                                                      vk::ImageAspectFlagBits::eColor);
 
-        command_buffer.pipelineBarrier2(
-            {
-                .imageMemoryBarrierCount = 1,
-                .pImageMemoryBarriers = &memory_barrier2
-            });
+
+        vk_types::Image::transition(command_buffer, swapchain_.images[image_index],
+                                    vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone,
+                                    vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
+                                    vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
+                                    vk::ImageAspectFlagBits::eColor);
+
+        color_render_target_[fence_index_].copy(command_buffer, swapchain_.images[image_index], swapchain_.extent);
+
+        vk_types::Image::transition(command_buffer, swapchain_.images[image_index],
+                                    vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
+                                    vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone,
+                                    vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR,
+                                    vk::ImageAspectFlagBits::eColor);
 
         command_buffer.end();
     }
@@ -173,6 +180,9 @@ void VkEngine::draw()
         window_system_.resized = false;
         swapchain_.recreate(core_, window_system_);
     }
+    if (vk::Result::eSuccess != result)
+        throw std::runtime_error("Failed to present swapchain image !");
+
 
     semaphore_index_ = (semaphore_index_ + 1) % swapchain_.image_count;
     fence_index_ = (fence_index_ + 1) % FRAME_OVERLAP;
