@@ -72,6 +72,7 @@ add_executable(drawTriangleCpp
         src/types/image.cc
         src/types/pipeline.cc
         src/types/mem_allocator.cc
+        src/types/descriptor_allocator.cc
 
         src/utils/pipeline_builder.cc
 )
@@ -100,6 +101,7 @@ target_sources(drawTriangleCpp
             src/types/image.hh
             src/types/pipeline.hh
             src/types/mem_allocator.hh
+            src/types/descriptor_allocator.hh
 
             src/utils/types.hh
             src/utils/pipeline_builder.hh
