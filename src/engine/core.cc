@@ -32,9 +32,7 @@ uint32_t grade_physical_device(const vk::raii::PhysicalDevice& physical_device,
             if (std::ranges::none_of(device_extensions.begin(), device_extensions.end(),
                                      [required_extension](const vk::ExtensionProperties& device_extension)
                                      {
-                                         return std::strcmp(device_extension.extensionName, required_extension)
-                                             ==
-                                             0;
+                                         return std::strcmp(device_extension.extensionName, required_extension) == 0;
                                      }))
                 return 0;
         }
@@ -72,7 +70,19 @@ VKAPI_ATTR vk::Bool32 VKAPI_CALL debugMessageCallback(
     const vk::DebugUtilsMessengerCallbackDataEXT* p_callback_data,
     void* p_user_data)
 {
-    std::cerr << "validation layer: " << p_callback_data->pMessage << std::endl;
+    switch (message_severity)
+    {
+    case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+    case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
+    case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+        std::cout << vk::to_string(message_severity) << ' ' << vk::to_string(message_type) << ' ' << p_callback_data->
+            pMessage << std::endl;
+        break;
+    case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
+        std::cerr << vk::to_string(message_severity) << ' ' << vk::to_string(message_type) << ' ' << p_callback_data->
+            pMessage << std::endl;
+        break;
+    }
 
     return vk::False;
 }
