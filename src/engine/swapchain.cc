@@ -94,12 +94,12 @@ void Swapchain::init(const Core& core,
     }
 }
 
-std::pair<vk::Result, uint32_t> Swapchain::Acquire(const uint32_t semaphore_index) const
+std::pair<vk::Result, uint32_t> Swapchain::Acquire() const
 {
-    return vk_swapchain.acquireNextImage(-1, *frame_acquired_semaphores[semaphore_index], nullptr);
+    return vk_swapchain.acquireNextImage(UINT64_MAX, *frame_acquired_semaphores[frame_acquired_index], nullptr);
 }
 
-vk::Result Swapchain::Present(const vk::raii::Queue& present_queue, uint32_t image_index) const
+vk::Result Swapchain::Present(const vk::raii::Queue& present_queue, uint32_t image_index)
 {
     const vk::PresentInfoKHR present_info = {
         .waitSemaphoreCount = 1,
@@ -109,7 +109,14 @@ vk::Result Swapchain::Present(const vk::raii::Queue& present_queue, uint32_t ima
         .pImageIndices = &image_index,
     };
 
+    frame_acquired_index = (frame_acquired_index + 1) % image_count;
+
     return present_queue.presentKHR(present_info);
+}
+
+vk::Semaphore Swapchain::GetCurrentSemaphore() const
+{
+    return frame_acquired_semaphores[frame_acquired_index];
 }
 
 void Swapchain::recreate(const Core& core, const WindowSystem& window_system)

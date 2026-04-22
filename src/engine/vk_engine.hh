@@ -37,8 +37,7 @@ private:
 
     Swapchain swapchain_{};
 
-    uint32_t fence_index_{0};
-    uint32_t semaphore_index_{0};
+    uint32_t in_flight_index_{0};
     std::vector<vk::raii::Fence> in_flight_fences_{};
 
     std::vector<vk_types::Image> color_render_target_{};

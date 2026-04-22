@@ -68,13 +68,13 @@ void VkEngine::run()
 
 void VkEngine::draw()
 {
-    if (vk::Result::eSuccess != core_.device_.waitForFences(*in_flight_fences_[fence_index_], vk::True,
+    if (vk::Result::eSuccess != core_.device_.waitForFences(*in_flight_fences_[in_flight_index_], vk::True,
                                                             -1))
         throw std::runtime_error("Error while waiting for fence !");
 
-    core_.device_.resetFences(*in_flight_fences_[fence_index_]);
+    core_.device_.resetFences(*in_flight_fences_[in_flight_index_]);
 
-    auto [result, image_index] = swapchain_.Acquire(semaphore_index_);
+    auto [result, image_index] = swapchain_.Acquire();
     if (vk::Result::eErrorOutOfDateKHR == result)
     {
         swapchain_.recreate(core_, window_system_);
@@ -88,17 +88,17 @@ void VkEngine::draw()
     {
         command_buffer.begin({});
 
-        color_render_target_[fence_index_].transition(command_buffer, vk::PipelineStageFlagBits2::eNone,
-                                                      vk::AccessFlagBits2::eNone,
-                                                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                                                      vk::AccessFlagBits2::eColorAttachmentWrite,
-                                                      vk::ImageLayout::eUndefined,
-                                                      vk::ImageLayout::eColorAttachmentOptimal,
-                                                      vk::ImageAspectFlagBits::eColor);
+        color_render_target_[in_flight_index_].transition(command_buffer, vk::PipelineStageFlagBits2::eNone,
+                                                          vk::AccessFlagBits2::eNone,
+                                                          vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                                                          vk::AccessFlagBits2::eColorAttachmentWrite,
+                                                          vk::ImageLayout::eUndefined,
+                                                          vk::ImageLayout::eColorAttachmentOptimal,
+                                                          vk::ImageAspectFlagBits::eColor);
 
         constexpr vk::ClearValue clear_color = vk::ClearColorValue{0.5f, 0.5f, 0.5f, 1.0f};
         vk::RenderingAttachmentInfo attachment_info = {
-            .imageView = color_render_target_[fence_index_].image_view_,
+            .imageView = color_render_target_[in_flight_index_].image_view_,
             .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
             .loadOp = vk::AttachmentLoadOp::eClear,
             .storeOp = vk::AttachmentStoreOp::eStore,
@@ -131,14 +131,12 @@ void VkEngine::draw()
         command_buffer.draw(3, 1, 0, 0);
         command_buffer.endRendering();
 
-        color_render_target_[fence_index_].transition(command_buffer,
-                                                      vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-                                                      vk::AccessFlagBits2::eColorAttachmentWrite,
-                                                      vk::PipelineStageFlagBits2::eTransfer,
-                                                      vk::AccessFlagBits2::eTransferRead,
-                                                      vk::ImageLayout::eColorAttachmentOptimal,
-                                                      vk::ImageLayout::eTransferSrcOptimal,
-                                                      vk::ImageAspectFlagBits::eColor);
+        color_render_target_[in_flight_index_].transition(
+            command_buffer,
+            vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite,
+            vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead,
+            vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal,
+            vk::ImageAspectFlagBits::eColor);
 
 
         vk_types::Image::transition(command_buffer, swapchain_.images[image_index],
@@ -147,7 +145,7 @@ void VkEngine::draw()
                                     vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
                                     vk::ImageAspectFlagBits::eColor);
 
-        color_render_target_[fence_index_].copy(command_buffer, swapchain_.images[image_index], swapchain_.extent);
+        color_render_target_[in_flight_index_].copy(command_buffer, swapchain_.images[image_index], swapchain_.extent);
 
         vk_types::Image::transition(command_buffer, swapchain_.images[image_index],
                                     vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
@@ -160,9 +158,10 @@ void VkEngine::draw()
 
     constexpr vk::PipelineStageFlags wait_destination_stage_mask{vk::PipelineStageFlagBits::eColorAttachmentOutput};
 
+    std::array wait_semaphore = {swapchain_.GetCurrentSemaphore()};
     const vk::SubmitInfo submit_info = {
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &*swapchain_.frame_acquired_semaphores[semaphore_index_],
+        .waitSemaphoreCount = wait_semaphore.size(),
+        .pWaitSemaphores = wait_semaphore.data(),
         .pWaitDstStageMask = &wait_destination_stage_mask,
         .commandBufferCount = 1,
         .pCommandBuffers = &*command_buffer,
@@ -170,7 +169,7 @@ void VkEngine::draw()
         .pSignalSemaphores = &*is_presentable_semaphore,
     };
 
-    core_.graphics_queue.submit(submit_info, in_flight_fences_[fence_index_]);
+    core_.graphics_queue.submit(submit_info, in_flight_fences_[in_flight_index_]);
 
     result = swapchain_.Present(core_.present_queue, image_index);
     if (vk::Result::eErrorOutOfDateKHR == result || vk::Result::eSuboptimalKHR == result || window_system_.resized)
@@ -196,7 +195,6 @@ void VkEngine::draw()
         throw std::runtime_error("Failed to present swapchain image !");
 
 
-    semaphore_index_ = (semaphore_index_ + 1) % swapchain_.image_count;
-    fence_index_ = (fence_index_ + 1) % FRAME_OVERLAP;
+    in_flight_index_ = (in_flight_index_ + 1) % FRAME_OVERLAP;
 }
 }
