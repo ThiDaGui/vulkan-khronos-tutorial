@@ -75,6 +75,8 @@ add_executable(drawTriangleCpp
         src/types/descriptor_allocator.cc
 
         src/utils/pipeline_builder.cc
+        src/types/buffer.cc
+        src/types/buffer.hh
 )
 
 target_sources(drawTriangleCpp
