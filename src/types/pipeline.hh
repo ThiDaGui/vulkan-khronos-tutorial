@@ -30,6 +30,6 @@ public:
     const vk::PipelineLayout& getLayout() const;
 
     static Pipeline CreateGraphicPipeline(const vk::raii::Device& device, const std::filesystem::path& shader_path,
-                                          std::span<const vk::Format> color_attachments);
+                                          std::span<const vk::Format> color_attachments, const vk::PipelineLayout& pipeline_layout);
 };
 }

@@ -14,10 +14,7 @@ void PipelineBuilder::reset()
     shader_stages = {};
     color_blend_attachment_states = {};
     push_constant_ranges = {};
-    descriptor_set_layouts = {};
-    vertex_input_state_create_info = vk::PipelineVertexInputStateCreateInfo{
-        .vertexBindingDescriptionCount = 0, .vertexAttributeDescriptionCount = 0
-    };
+    vertex_input_state_create_info = vk::PipelineVertexInputStateCreateInfo{};
     input_assembly_state_create_info = vk::PipelineInputAssemblyStateCreateInfo{};
     viewport_state_create_info = vk::PipelineViewportStateCreateInfo{};
     dynamic_state_create_info = vk::PipelineDynamicStateCreateInfo{
@@ -25,9 +22,9 @@ void PipelineBuilder::reset()
     };
     rasterization_state_create_info = vk::PipelineRasterizationStateCreateInfo{.lineWidth = 1.0};
     multisample_state_create_info = vk::PipelineMultisampleStateCreateInfo{};
-    color_blend_state_create_info = vk::PipelineColorBlendStateCreateInfo{.logicOpEnable = vk::False};
+    color_blend_state_create_info = vk::PipelineColorBlendStateCreateInfo{};
     rendering_create_info = vk::PipelineRenderingCreateInfo{};
-    layout_create_info = vk::PipelineLayoutCreateInfo{};
+    layout = vk::PipelineLayout{};
 }
 
 constexpr const char *mainName(const vk::ShaderStageFlagBits stage)
@@ -106,9 +103,9 @@ PipelineBuilder& PipelineBuilder::addPushConstantRange(const vk::PushConstantRan
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addDescriptorSetLayout(const vk::DescriptorSetLayout& descriptor_set_layout)
+PipelineBuilder& PipelineBuilder::setPipelineLayout(const vk::PipelineLayout& pipeline_layout)
 {
-    descriptor_set_layouts.push_back(descriptor_set_layout);
+    this->layout = pipeline_layout;
     return *this;
 }
 
@@ -121,14 +118,6 @@ PipelineBuilder& PipelineBuilder::setColorAttachment(std::span<const vk::Format>
 vk_types::Pipeline PipelineBuilder::buildGraphics(const vk::raii::Device& device)
 {
     color_blend_state_create_info.setAttachments(color_blend_attachment_states);
-    layout_create_info.setSetLayouts(descriptor_set_layouts)
-                      .setPushConstantRanges(push_constant_ranges);
-    static constexpr vk::PipelineLayoutCreateInfo pipeline_layout_create_info = {
-        .setLayoutCount = 0,
-        .pushConstantRangeCount = 0,
-    };
-    vk::raii::PipelineLayout layout{device, pipeline_layout_create_info};
-
     const vk::GraphicsPipelineCreateInfo create_info = {
         .pNext = rendering_create_info,
         .stageCount = static_cast<uint32_t>(shader_stages.size()),
@@ -144,6 +133,6 @@ vk_types::Pipeline PipelineBuilder::buildGraphics(const vk::raii::Device& device
         .renderPass = nullptr,
     };
 
-    return {vk::raii::Pipeline{device, nullptr, create_info}, std::move(layout)};
+    return vk_types::Pipeline{vk::raii::Pipeline{device, nullptr, create_info}, vk::raii::PipelineLayout(device, layout)};
 }
 }

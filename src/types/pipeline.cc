@@ -62,7 +62,8 @@ const vk::PipelineLayout& Pipeline::getLayout() const
 
 Pipeline Pipeline::CreateGraphicPipeline(const vk::raii::Device& device,
                                          const std::filesystem::path& shader_path,
-                                         const std::span<const vk::Format> color_attachments)
+                                         const std::span<const vk::Format> color_attachments,
+                                         const vk::PipelineLayout& pipeline_layout)
 {
     PipelineBuilder builder{};
     std::vector buffer{readShader(shader_path)};
@@ -83,7 +84,8 @@ Pipeline Pipeline::CreateGraphicPipeline(const vk::raii::Device& device,
                                  vk::ColorComponentFlagBits::eB |
                                  vk::ColorComponentFlagBits::eA
            })
-           .setColorAttachment(color_attachments);
+           .setColorAttachment(color_attachments)
+           .setPipelineLayout(pipeline_layout);
     return builder.buildGraphics(device);
 }
 }

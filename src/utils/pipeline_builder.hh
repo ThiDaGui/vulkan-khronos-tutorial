@@ -14,8 +14,6 @@ class PipelineBuilder
 
     std::vector<vk::PushConstantRange> push_constant_ranges;
 
-    std::vector<vk::DescriptorSetLayout> descriptor_set_layouts;
-
     vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info;
 
     vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info;
@@ -32,7 +30,7 @@ class PipelineBuilder
 
     vk::PipelineRenderingCreateInfo rendering_create_info;
 
-    vk::PipelineLayoutCreateInfo layout_create_info;
+    vk::PipelineLayout layout;
 
 public:
     PipelineBuilder();
@@ -55,7 +53,7 @@ public:
 
     PipelineBuilder& addPushConstantRange(const vk::PushConstantRange& push_constant_range);
 
-    PipelineBuilder& addDescriptorSetLayout(const vk::DescriptorSetLayout& descriptor_set_layout);
+    PipelineBuilder& setPipelineLayout(const vk::PipelineLayout& pipeline_layout);
 
     PipelineBuilder& setColorAttachment(std::span<const vk::Format> color_attachments);
 

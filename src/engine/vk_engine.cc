@@ -49,8 +49,15 @@ VkEngine::VkEngine()
     descriptor_allocator_ = vk_types::DescriptorAllocator{core_.device_, FRAME_OVERLAP, descriptor_entries};
 
     std::array color_attachments = {color_render_target_[0].image_format_};
+
+    vk::PipelineLayoutCreateInfo pipeline_create_info = {
+        .setLayoutCount = 0,
+        .pushConstantRangeCount = 0
+    };
+
+    auto pipeline_layout = vk::raii::PipelineLayout{core_.device_, pipeline_create_info};
     pipeline_ = vk_types::Pipeline::CreateGraphicPipeline(core_.device_, shaderPath / "triangle_slang.spv",
-                                                          color_attachments);
+                                                          color_attachments, pipeline_layout.release());
 
     is_initialized = true;
 }
