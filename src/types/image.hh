@@ -46,17 +46,18 @@ public:
                     vk::ImageAspectFlags aspect_mask) const;
 
     static void transition(const vk::raii::CommandBuffer& command_buffer,
-                      vk::Image image,
-                      vk::PipelineStageFlagBits2 src_stage_mask,
-                      vk::AccessFlagBits2 src_access_mask,
-                      vk::PipelineStageFlagBits2 dst_stage_mask,
-                      vk::AccessFlagBits2 dst_access_mask,
-                      vk::ImageLayout old_layout,
-                      vk::ImageLayout new_layout,
-                      vk::ImageAspectFlags aspect_mask);
+                           vk::Image image,
+                           vk::PipelineStageFlagBits2 src_stage_mask,
+                           vk::AccessFlagBits2 src_access_mask,
+                           vk::PipelineStageFlagBits2 dst_stage_mask,
+                           vk::AccessFlagBits2 dst_access_mask,
+                           vk::ImageLayout old_layout,
+                           vk::ImageLayout new_layout,
+                           vk::ImageAspectFlags aspect_mask);
 
     void copy(const vk::raii::CommandBuffer& command_buffer,
               const Image& dst_image) const;
 
     void copy(const vk::raii::CommandBuffer& command_buffer, vk::Image dst_image, vk::Extent2D extent) const;
-};}
+};
+}

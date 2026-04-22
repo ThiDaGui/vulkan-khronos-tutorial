@@ -132,7 +132,9 @@ void Image::copy(const vk::raii::CommandBuffer& command_buffer, const Image& dst
         .dstOffsets = std::array{
             vk::Offset3D{0, 0, 0},
             vk::Offset3D{
-                static_cast<int32_t>(dst_image.image_extent_.width), static_cast<int32_t>(dst_image.image_extent_.height), 1
+                static_cast<int32_t>(dst_image.image_extent_.width),
+                static_cast<int32_t>(dst_image.image_extent_.height),
+                1
             }
         }
     };
