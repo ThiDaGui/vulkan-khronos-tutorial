@@ -12,7 +12,7 @@ DescriptorAllocator::DescriptorAllocator(const vk::raii::Device& device, const u
         pool_sizes[i].descriptorCount = max_sets * entries[i].count;
     }
 
-    vk::DescriptorPoolCreateInfo create_info = {
+    const vk::DescriptorPoolCreateInfo create_info = {
         .maxSets = max_sets,
         .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
         .pPoolSizes = pool_sizes.data(),
@@ -21,6 +21,7 @@ DescriptorAllocator::DescriptorAllocator(const vk::raii::Device& device, const u
 }
 
 DescriptorAllocator::~DescriptorAllocator() = default;
+
 DescriptorAllocator::DescriptorAllocator(DescriptorAllocator&& other) noexcept
 {
     swap(other);
@@ -32,7 +33,7 @@ DescriptorAllocator& DescriptorAllocator::operator=(DescriptorAllocator&& other)
     return *this;
 }
 
-void DescriptorAllocator::swap(DescriptorAllocator& other)
+void DescriptorAllocator::swap(DescriptorAllocator& other) noexcept
 {
     if (this == &other)
         return;
@@ -44,15 +45,15 @@ void DescriptorAllocator::reset() const
     pool.reset();
 }
 
-vk::raii::DescriptorSet DescriptorAllocator::allocate(const vk::raii::Device& device,
-                                                      const vk::DescriptorSetLayout layout) const
+vk::DescriptorSet DescriptorAllocator::allocate(const vk::raii::Device& device,
+                                                const vk::DescriptorSetLayout layout) const
 {
     const vk::DescriptorSetAllocateInfo allocate_info = {
         .descriptorPool = pool,
         .descriptorSetCount = 1,
         .pSetLayouts = &layout,
     };
-    return std::move(device.allocateDescriptorSets(allocate_info).front());
+    return (*device).allocateDescriptorSets(allocate_info, *device.getDispatcher()).front();
 }
 
 std::vector<vk::raii::DescriptorSet> DescriptorAllocator::allocate(const vk::raii::Device& device,
