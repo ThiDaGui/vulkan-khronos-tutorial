@@ -12,6 +12,7 @@
 #include "window_system.hh"
 #include "types/image.hh"
 #include "types/pipeline.hh"
+#include "types/descriptor_allocator.hh"
 
 namespace vk_tutorial
 {
@@ -42,7 +43,9 @@ private:
 
     std::vector<vk_types::Image> color_render_target_{};
 
-	vk_types::Pipeline pipeline_{nullptr, nullptr};
+    vk_types::DescriptorAllocator descriptor_allocator_{};
+
+    vk_types::Pipeline pipeline_{nullptr, nullptr};
 
 public:
     VkEngine();
