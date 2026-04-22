@@ -1,21 +1,25 @@
-//
-// Created by damiendidier on 18/11/2025.
-//
-
 #pragma once
 
+#include <glm/mat4x4.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
 #include "core.hh"
-#include "required_queue_family_indices.hh"
 #include "swapchain.hh"
 #include "window_system.hh"
+#include "types/buffer.hh"
+#include "types/descriptor_allocator.hh"
 #include "types/image.hh"
 #include "types/pipeline.hh"
-#include "types/descriptor_allocator.hh"
 
 namespace vk_tutorial
 {
+struct VP
+{
+    glm::mat4 view_matrix;
+    glm::mat4 projection_matrix;
+};
+
+
 class VkEngine final : NonCopyable
 {
     static constexpr std::array REQUIRED_DEVICE_EXTENSIONS = {
@@ -43,6 +47,10 @@ private:
     std::vector<vk_types::Image> color_render_target_{};
 
     vk_types::DescriptorAllocator descriptor_allocator_{};
+    std::array<vk::DescriptorSet, FRAME_OVERLAP> descriptor_set_{};
+    vk::raii::DescriptorSetLayout descriptor_set_layout_{nullptr};
+
+    std::array<vk_types::Buffer, FRAME_OVERLAP> view_proj_uniform_{};
 
     vk_types::Pipeline pipeline_{nullptr, nullptr};
 
@@ -54,6 +62,7 @@ public:
     void run();
 
 private:
+    void update() const;
     void draw();
 };
 }

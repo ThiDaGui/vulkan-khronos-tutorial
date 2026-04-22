@@ -4,21 +4,18 @@ struct VertexInput {
     float3 color;
     float2 tex_coordinate;
 };
-
-struct MVPUniformBuffer {
-    float4x4 model;
+*/
+struct VPUniformBuffer {
     float4x4 view;
     float4x4 proj;
 };
-ConstantBuffer<MVPUniformBuffer> mvp;
 
-*/
+ParameterBlock<VPUniformBuffer> vp;
 
-
-static float2 positions[3] = float2[](
-	float2(0.0, -0.5),
-	float2(0.5, 0.5),
-	float2(-0.5, 0.5)
+static float3 positions[3] = float3[](
+	float3(0.0, 0.0, -0.5),
+	float3(0.5, 0.0, 0.5),
+	float3(-0.5, 0.0, 0.5)
 );
 
 
@@ -36,7 +33,7 @@ struct VertexOutput {
 [shader("vertex")]
 VertexOutput vertMain(uint vertexID : SV_VertexID) {
     VertexOutput output;
-    output.sv_position = float4(positions[vertexID], 0.0, 1.0);
+    output.sv_position = mul(vp.proj, mul(vp.view, float4(positions[vertexID], 1.0)));
     output.frag_color = colors[vertexID];
     return output;
 }

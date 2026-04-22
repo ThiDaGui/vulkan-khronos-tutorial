@@ -1,7 +1,10 @@
 #include "vk_engine.hh"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "config.hh"
-#include "required_queue_family_indices.hh"
+#include "types/buffer.hh"
+#include "utils/descriptor_set_layout_builder.hh"
 
 namespace vk_tutorial
 {
@@ -46,16 +49,56 @@ VkEngine::VkEngine()
     std::array descriptor_entries{
         vk_types::DescriptorAllocator::DescriptorEntry{vk::DescriptorType::eUniformBuffer, 1}
     };
+    descriptor_set_layout_ = DescriptorSetLayoutBuilder()
+                             .AddBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex)
+                             .Build(core_.device_);
+
     descriptor_allocator_ = vk_types::DescriptorAllocator{core_.device_, FRAME_OVERLAP, descriptor_entries};
+
+    descriptor_set_ = {
+        descriptor_allocator_.allocate(core_.device_, descriptor_set_layout_),
+        descriptor_allocator_.allocate(core_.device_, descriptor_set_layout_),
+    };
+
+
+    view_proj_uniform_ = {
+        vk_types::Buffer{
+            core_.vma_allocator.vma_allocator, sizeof(VP),
+            vk::BufferUsageFlagBits::eUniformBuffer,
+            VMA_MEMORY_USAGE_AUTO,
+            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+        },
+        vk_types::Buffer{
+            core_.vma_allocator.vma_allocator, sizeof(VP),
+            vk::BufferUsageFlagBits::eUniformBuffer,
+            VMA_MEMORY_USAGE_AUTO,
+            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+        },
+    };
+    for (size_t i = 0; i < FRAME_OVERLAP; i++)
+    {
+        vk::DescriptorBufferInfo info = {
+            view_proj_uniform_[i].buffer_, 0, sizeof(VP)
+        };
+        vk::WriteDescriptorSet write_descriptor_set = {
+            .dstSet = descriptor_set_[i],
+            .dstBinding = 0,
+            .descriptorCount = 1,
+            .descriptorType = vk::DescriptorType::eUniformBuffer,
+            .pBufferInfo = &info,
+        };
+        core_.device_.updateDescriptorSets(write_descriptor_set, {});
+    }
 
     std::array color_attachments = {color_render_target_[0].image_format_};
 
-    vk::PipelineLayoutCreateInfo pipeline_create_info = {
-        .setLayoutCount = 0,
+    vk::PipelineLayoutCreateInfo pipeline_layout_create_info = {
+        .setLayoutCount = 1,
+        .pSetLayouts = &*descriptor_set_layout_,
         .pushConstantRangeCount = 0
     };
 
-    auto pipeline_layout = vk::raii::PipelineLayout{core_.device_, pipeline_create_info};
+    auto pipeline_layout = vk::raii::PipelineLayout{core_.device_, pipeline_layout_create_info};
     pipeline_ = vk_types::Pipeline::CreateGraphicPipeline(core_.device_, shaderPath / "triangle_slang.spv",
                                                           color_attachments, pipeline_layout.release());
 
@@ -68,9 +111,27 @@ void VkEngine::run()
 {
     while (!window_system_.shouldClose())
     {
+        update();
         draw();
     }
     core_.device_.waitIdle();
+}
+
+void VkEngine::update() const
+{
+    static auto start_time = std::chrono::high_resolution_clock::now();
+
+    const auto current_time = std::chrono::high_resolution_clock::now();
+    const float time = std::chrono::duration<float>(current_time - start_time).count();
+    VP vp{};
+    vp.view_matrix = glm::lookAt(glm::vec3{2.0f * glm::sin(time), 2.0f * glm::cos(time), 0.0f},
+                                 glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
+    vp.projection_matrix = glm::perspective(glm::radians(30.0f),
+                                            static_cast<float>(swapchain_.extent.width) / static_cast<float>(swapchain_.
+                                                extent.height), 0.1f, 10.0f);
+    vp.projection_matrix[1][1] *= -1;
+
+    view_proj_uniform_[in_flight_index_].update(&vp, sizeof(vp));
 }
 
 void VkEngine::draw()
@@ -119,6 +180,7 @@ void VkEngine::draw()
         };
 
         command_buffer.beginRendering(rendering_info);
+        command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.getPipeline());
         {
             const vk::Viewport viewport = {
                 0.0f,
@@ -134,7 +196,8 @@ void VkEngine::draw()
             command_buffer.setViewport(0, viewport);
             command_buffer.setScissor(0, scissor);
         }
-        command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline_.getPipeline());
+        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.getLayout(), 0,
+                                          descriptor_set_[in_flight_index_], nullptr);
         command_buffer.draw(3, 1, 0, 0);
         command_buffer.endRendering();
 
