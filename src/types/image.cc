@@ -6,16 +6,15 @@ Image::Image(const vk::raii::Device& device,
              VmaAllocator vma_allocator,
              const vk::Format format,
              const vk::Extent2D extent_2d,
-             const vk::ImageUsageFlags image_usage,
              const vk::SampleCountFlagBits sample_count,
-             const VmaMemoryUsage memory_usage,
+             const Usage image_usage,
              const vk::ImageAspectFlags image_aspect)
     : image_extent_{extent_2d.width, extent_2d.height, 1}
     , image_format_{format}
     , vma_allocator_(vma_allocator)
 {
     VkImage image;
-    const vk::ImageCreateInfo image_create_info = {
+    vk::ImageCreateInfo image_create_info = {
         .imageType = vk::ImageType::e2D,
         .format = format,
         .extent = image_extent_,
@@ -23,13 +22,28 @@ Image::Image(const vk::raii::Device& device,
         .arrayLayers = 1,
         .samples = sample_count,
         .tiling = vk::ImageTiling::eOptimal,
-        .usage = image_usage,
     };
 
-    const VmaAllocationCreateInfo alloc_create_info = {
-        .usage = memory_usage,
-        .requiredFlags = static_cast<VkMemoryPropertyFlags>(vk::MemoryPropertyFlagBits::eDeviceLocal),
-    };
+    VmaAllocationCreateInfo alloc_create_info{};
+    switch (image_usage)
+    {
+    case Usage::eTexture:
+        image_create_info.usage = vk::ImageUsageFlagBits::eSampled;
+        alloc_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+        break;
+    case Usage::eColorAttachment:
+        image_create_info.usage = vk::ImageUsageFlagBits::eColorAttachment |
+                                  vk::ImageUsageFlagBits::eTransferSrc |
+                                  vk::ImageUsageFlagBits::eStorage;
+        alloc_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+        break;
+    case Usage::eDepth:
+        [[fallthrough]];
+    case Usage::eDepthStencil:
+        [[fallthrough]];
+    default:
+        std::abort();
+    }
 
     vmaCreateImage(vma_allocator_, image_create_info, &alloc_create_info, &image, &image_memory_, nullptr);
     image_ = vk::raii::Image{device, image};
@@ -45,6 +59,8 @@ Image::Image(const vk::raii::Device& device,
 
 Image::~Image()
 {
+    if (!vma_allocator_)
+        return;
     vmaFreeMemory(vma_allocator_, image_memory_);
 }
 
@@ -63,11 +79,12 @@ void Image::swap(Image& other) noexcept
 {
     if (this == &other)
         return;
+    std::swap(image_extent_, other.image_extent_);
+    std::swap(image_format_, other.image_format_);
     std::swap(image_, other.image_);
     std::swap(image_view_, other.image_view_);
     std::swap(image_memory_, other.image_memory_);
-    std::swap(image_extent_, other.image_extent_);
-    std::swap(image_format_, other.image_format_);
+    std::swap(vma_allocator_, other.vma_allocator_);
 }
 
 void Image::transition(const vk::raii::CommandBuffer& command_buffer,

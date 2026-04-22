@@ -10,6 +10,14 @@ namespace vk_tutorial::vk_types
 class Image final : NonCopyable
 {
 public:
+    enum class Usage
+    {
+        eTexture,
+        eColorAttachment,
+        eDepth,
+        eDepthStencil,
+    };
+
     vk::Extent3D image_extent_{};
     vk::Format image_format_{};
     vk::raii::Image image_{nullptr};
@@ -19,14 +27,13 @@ public:
 
     Image() = default;
 
-    explicit Image(const vk::raii::Device& device,
-                   VmaAllocator vma_allocator,
-                   vk::Format format,
-                   vk::Extent2D extent_2d,
-                   vk::ImageUsageFlags image_usage,
-                   vk::SampleCountFlagBits sample_count,
-                   VmaMemoryUsage memory_usage,
-                   vk::ImageAspectFlags image_aspect);
+    Image(const vk::raii::Device& device,
+          VmaAllocator vma_allocator,
+          vk::Format format,
+          vk::Extent2D extent_2d,
+          vk::SampleCountFlagBits sample_count,
+          Usage image_usage,
+          vk::ImageAspectFlags image_aspect);
 
     ~Image();
 

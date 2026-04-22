@@ -37,10 +37,8 @@ VkEngine::VkEngine()
             core_.vma_allocator.vma_allocator,
             vk::Format::eR16G16B16A16Sfloat,
             swapchain_.extent,
-            vk::ImageUsageFlagBits::eTransferSrc | vk::ImageUsageFlagBits::eColorAttachment |
-            vk::ImageUsageFlagBits::eStorage,
             vk::SampleCountFlagBits::e1,
-            VMA_MEMORY_USAGE_GPU_ONLY,
+            vk_types::Image::Usage::eColorAttachment,
             vk::ImageAspectFlagBits::eColor
         );
     }
@@ -179,6 +177,20 @@ void VkEngine::draw()
     {
         window_system_.resized = false;
         swapchain_.recreate(core_, window_system_);
+        color_render_target_.clear();
+        color_render_target_.reserve(FRAME_OVERLAP);
+        for (size_t i = 0; i < FRAME_OVERLAP; i++)
+        {
+            color_render_target_.emplace_back(
+                core_.device_,
+                core_.vma_allocator.vma_allocator,
+                vk::Format::eR16G16B16A16Sfloat,
+                swapchain_.extent,
+                vk::SampleCountFlagBits::e1,
+                vk_types::Image::Usage::eColorAttachment,
+                vk::ImageAspectFlagBits::eColor
+            );
+        }
     }
     if (vk::Result::eSuccess != result)
         throw std::runtime_error("Failed to present swapchain image !");
