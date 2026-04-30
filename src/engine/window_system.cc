@@ -10,6 +10,14 @@ void framebufferResizeCallback(GLFWwindow *window, int width, int height)
     window_system->resized = true;
 }
 
+WindowSystem::~WindowSystem()
+{
+    if (nullptr == window)
+        return;
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
 void WindowSystem::init(const uint32_t width, const uint32_t height, const char* name)
 {
     glfwInit();
@@ -35,14 +43,6 @@ vk::raii::SurfaceKHR WindowSystem::createSurface(const vk::raii::Instance& insta
     if (static_cast<VkResult>(vk::Result::eSuccess) != err)
         throw std::runtime_error("failed to create window surface!");
     return {instance, vk_surface};
-}
-
-WindowSystem::~WindowSystem()
-{
-    if (nullptr == window)
-        return;
-    glfwDestroyWindow(window);
-    glfwTerminate();
 }
 
 vk::Extent2D WindowSystem::getExtent() const

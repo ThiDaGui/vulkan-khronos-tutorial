@@ -3,21 +3,18 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
+#include "utils/types.hh"
+
 struct GLFWwindow;
 
 namespace vk_tutorial
 {
-struct WindowSystem {
+struct WindowSystem final : NonMovable {
     GLFWwindow *window{nullptr};
     bool resized{false};
 
     WindowSystem() = default;
     ~WindowSystem();
-
-    WindowSystem(const WindowSystem &other) = delete;
-    WindowSystem &operator=(const WindowSystem &other) = delete;
-    WindowSystem(WindowSystem &&other) = delete;
-    WindowSystem &operator=(WindowSystem &&other) = delete;
 
     void init(std::uint32_t width, std::uint32_t height, const char *name);
 
