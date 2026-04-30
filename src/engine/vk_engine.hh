@@ -51,6 +51,8 @@ private:
     vk::raii::DescriptorSetLayout descriptor_set_layout_{nullptr};
 
     std::array<vk_types::Buffer, FRAME_OVERLAP> view_proj_uniform_{};
+    vk_types::Buffer mesh{};
+    vk::DeviceAddress mesh_address;
 
     vk_types::Pipeline pipeline_{nullptr, nullptr};
 

@@ -118,7 +118,6 @@ set_target_properties(drawTriangleCpp PROPERTIES
 )
 
 target_compile_definitions(drawTriangleCpp PUBLIC
-        VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
         VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
 )
 target_link_libraries(drawTriangleCpp PRIVATE

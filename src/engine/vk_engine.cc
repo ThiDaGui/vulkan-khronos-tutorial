@@ -8,6 +8,12 @@
 
 namespace vk_tutorial
 {
+struct vertex
+{
+    glm::vec3 position;
+    glm::vec3 color;
+};
+
 VkEngine::VkEngine()
 {
     window_system_.init(window_extent.width, window_extent.height, "Vulkan Tutorial");
@@ -66,13 +72,13 @@ VkEngine::VkEngine()
             core_.vma_allocator.vma_allocator, sizeof(VP),
             vk::BufferUsageFlagBits::eUniformBuffer,
             VMA_MEMORY_USAGE_AUTO,
-            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
         },
         vk_types::Buffer{
             core_.vma_allocator.vma_allocator, sizeof(VP),
             vk::BufferUsageFlagBits::eUniformBuffer,
             VMA_MEMORY_USAGE_AUTO,
-            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
         },
     };
     for (size_t i = 0; i < FRAME_OVERLAP; i++)
@@ -92,15 +98,66 @@ VkEngine::VkEngine()
 
     std::array color_attachments = {color_render_target_[0].image_format_};
 
-    vk::PipelineLayoutCreateInfo pipeline_layout_create_info = {
+    vk::PushConstantRange range{vk::ShaderStageFlagBits::eVertex, 0, sizeof(vk::DeviceAddress)};
+    const vk::PipelineLayoutCreateInfo pipeline_layout_create_info = {
         .setLayoutCount = 1,
         .pSetLayouts = &*descriptor_set_layout_,
-        .pushConstantRangeCount = 0
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &range,
     };
 
-    auto pipeline_layout = vk::raii::PipelineLayout{core_.device_, pipeline_layout_create_info};
+    const auto pipeline_layout = (*core_.device_).createPipelineLayout(pipeline_layout_create_info);
     pipeline_ = vk_types::Pipeline::CreateGraphicPipeline(core_.device_, shaderPath / "triangle_slang.spv",
-                                                          color_attachments, pipeline_layout.release());
+                                                          color_attachments, pipeline_layout);
+
+    constexpr std::array mesh_array{
+        vertex{.position = { 0.5f, 0.0f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        vertex{.position = { 0.5f, 0.0f,  0.5f}, .color = {1.0f, 1.0f, 0.0f}},
+        vertex{.position = {-0.5f, 0.0f,  0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        vertex{.position = { 0.5f, 0.0f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        vertex{.position = {-0.5f, 0.0f,  0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        vertex{.position = {-0.5f, 0.0f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
+    };
+
+    mesh = vk_types::Buffer{
+        core_.vma_allocator.vma_allocator,
+        mesh_array.size() * sizeof(vertex),
+        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer |
+        vk::BufferUsageFlagBits::eTransferDst,
+        VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+        VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT
+    };
+
+    const vk_types::Buffer staging{
+        core_.vma_allocator.vma_allocator,
+        mesh_array.size() * sizeof(vertex),
+        vk::BufferUsageFlagBits::eTransferSrc,
+        VMA_MEMORY_USAGE_AUTO,
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
+    };
+
+
+    staging.update(mesh_array.data(), mesh_array.size() * sizeof(vertex));
+
+    vk::CommandBufferAllocateInfo cmAI{
+        .commandPool = core_.graphics_command_pool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1
+    };
+    vk::raii::CommandBuffer command_buffer = std::move(core_.device_.allocateCommandBuffers(cmAI).front());
+    command_buffer.begin({});
+    command_buffer.copyBuffer(staging.buffer_, mesh.buffer_, vk::BufferCopy{.srcOffset = 0, .dstOffset = 0, .size = mesh_array.size() * sizeof(vertex)});
+    command_buffer.end();
+    const vk::SubmitInfo submit_info = {
+        .commandBufferCount = 1,
+        .pCommandBuffers = &*command_buffer,
+    };
+
+    core_.graphics_queue.submit(submit_info);
+    core_.device_.waitIdle();
+
+    mesh_address = core_.device_.getBufferAddress({.buffer = mesh.buffer_});
+
 
     is_initialized = true;
 }
@@ -198,7 +255,8 @@ void VkEngine::draw()
         }
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.getLayout(), 0,
                                           descriptor_set_[in_flight_index_], nullptr);
-        command_buffer.draw(3, 1, 0, 0);
+        command_buffer.pushConstants<vk::DeviceAddress>(pipeline_.getLayout(), vk::ShaderStageFlagBits::eVertex, 0, mesh_address );
+        command_buffer.draw(6, 1, 0, 0);
         command_buffer.endRendering();
 
         color_render_target_[in_flight_index_].transition(

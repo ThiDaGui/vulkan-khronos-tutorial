@@ -195,10 +195,12 @@ void Core::init(std::span<const char* const> instance_extensions,
 
         const vk::StructureChain<vk::PhysicalDeviceFeatures2,
                                  vk::PhysicalDeviceVulkan11Features,
+                                 vk::PhysicalDeviceVulkan12Features,
                                  vk::PhysicalDeviceVulkan13Features,
                                  vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> feature_chain = {
             {.features = {.samplerAnisotropy = true}},
             {.shaderDrawParameters = true},
+            { .scalarBlockLayout = true, .bufferDeviceAddress = true},
             {.synchronization2 = true, .dynamicRendering = true},
             {.extendedDynamicState = true}
         };
@@ -219,6 +221,7 @@ void Core::init(std::span<const char* const> instance_extensions,
     // memory allocator
     {
         VmaAllocatorCreateInfo allocator_info = {
+            .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
             .physicalDevice = *physical_device_,
             .device = *device_,
             .instance = *instance_,

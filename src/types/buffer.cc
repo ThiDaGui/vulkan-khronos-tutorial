@@ -20,9 +20,10 @@ Buffer::Buffer(const VmaAllocator vma_allocator,
         .usage = memory_usage,
     };
 
+    VmaAllocationInfo allocation_info{};
     VkBuffer buffer;
     if (VK_SUCCESS != vmaCreateBuffer(vma_allocator_, buffer_create_info, &allocation_create_info, &buffer,
-                                      &buffer_memory_, nullptr))
+                                      &buffer_memory_, &allocation_info))
         throw std::runtime_error("failed to create buffer!");
 
     buffer_ = buffer;
@@ -31,14 +32,14 @@ Buffer::Buffer(const VmaAllocator vma_allocator,
     vmaGetAllocationMemoryProperties(vma_allocator_, buffer_memory_, &memPropFlags);
 
     if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-        vmaMapMemory(vma_allocator_, buffer_memory_, &buffer_mapped_);
+        buffer_mapped_ = allocation_info.pMappedData;
 }
 
 Buffer::~Buffer()
 {
     if (!vma_allocator_)
         return;
-    vmaUnmapMemory(vma_allocator_, buffer_memory_);
+
     vmaDestroyBuffer(vma_allocator_, buffer_, buffer_memory_);
 }
 
@@ -64,7 +65,8 @@ void Buffer::swap(Buffer& rhs) noexcept
 void Buffer::update(const void* data, const size_t size) const
 {
     if (!buffer_mapped_)
-        return;
-    vmaCopyMemoryToAllocation(vma_allocator_, data, buffer_memory_, 0, size);
+        throw std::runtime_error("Buffer cannot be updated because it is not host visible");
+    memcpy(buffer_mapped_, data, size);
+    vmaFlushAllocation(vma_allocator_, buffer_memory_, 0, size);
 }
 }
