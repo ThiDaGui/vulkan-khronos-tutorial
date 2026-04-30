@@ -69,13 +69,13 @@ VkEngine::VkEngine()
 
     view_proj_uniform_ = {
         vk_types::Buffer{
-            core_.vma_allocator.vma_allocator, sizeof(VP),
+            core_.vma_allocator.vma_allocator, sizeof(CameraData),
             vk::BufferUsageFlagBits::eUniformBuffer,
             VMA_MEMORY_USAGE_AUTO,
             VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
         },
         vk_types::Buffer{
-            core_.vma_allocator.vma_allocator, sizeof(VP),
+            core_.vma_allocator.vma_allocator, sizeof(CameraData),
             vk::BufferUsageFlagBits::eUniformBuffer,
             VMA_MEMORY_USAGE_AUTO,
             VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
@@ -84,7 +84,7 @@ VkEngine::VkEngine()
     for (size_t i = 0; i < FRAME_OVERLAP; i++)
     {
         vk::DescriptorBufferInfo info = {
-            view_proj_uniform_[i].buffer_, 0, sizeof(VP)
+            view_proj_uniform_[i].buffer_, 0, sizeof(CameraData)
         };
         vk::WriteDescriptorSet write_descriptor_set = {
             .dstSet = descriptor_set_[i],
@@ -180,7 +180,7 @@ void VkEngine::update() const
 
     const auto current_time = std::chrono::high_resolution_clock::now();
     const float time = std::chrono::duration<float>(current_time - start_time).count();
-    VP vp{};
+    CameraData vp{};
     vp.view_matrix = glm::lookAt(glm::vec3{2.0f * glm::sin(time), 2.0f * glm::cos(time), 0.0f},
                                  glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
     vp.projection_matrix = glm::perspective(glm::radians(30.0f),
