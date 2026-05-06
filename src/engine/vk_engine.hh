@@ -10,6 +10,7 @@
 #include "types/descriptor_allocator.hh"
 #include "types/image.hh"
 #include "types/pipeline.hh"
+#include "types/typed_buffer.hh"
 
 namespace vk_tutorial
 {
@@ -19,6 +20,17 @@ struct CameraData
     glm::mat4 projection_matrix;
 };
 
+struct Vertex
+{
+    glm::vec3 position;
+    glm::vec3 color;
+};
+
+struct Mesh
+{
+    vk_types::TypedBuffer<Vertex> vertex_buffer;
+    vk::DeviceAddress vertex_buffer_address;
+};
 
 class VkEngine final : NonCopyable
 {
@@ -51,8 +63,7 @@ private:
     vk::raii::DescriptorSetLayout descriptor_set_layout_{nullptr};
 
     std::array<vk_types::Buffer, FRAME_OVERLAP> view_proj_uniform_{};
-    vk_types::Buffer mesh{};
-    vk::DeviceAddress mesh_address;
+    Mesh mesh{};
 
     vk_types::Pipeline pipeline_{nullptr, nullptr};
 

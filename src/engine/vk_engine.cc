@@ -8,11 +8,6 @@
 
 namespace vk_tutorial
 {
-struct vertex
-{
-    glm::vec3 position;
-    glm::vec3 color;
-};
 
 VkEngine::VkEngine()
 {
@@ -111,33 +106,34 @@ VkEngine::VkEngine()
                                                           color_attachments, pipeline_layout);
 
     constexpr std::array mesh_array{
-        vertex{.position = { 0.5f, 0.0f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-        vertex{.position = { 0.5f, 0.0f,  0.5f}, .color = {1.0f, 1.0f, 0.0f}},
-        vertex{.position = {-0.5f, 0.0f,  0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-        vertex{.position = { 0.5f, 0.0f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-        vertex{.position = {-0.5f, 0.0f,  0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-        vertex{.position = {-0.5f, 0.0f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
+        Vertex{.position = { 0.5f, 0.0f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        Vertex{.position = { 0.5f, 0.0f,  0.5f}, .color = {1.0f, 1.0f, 0.0f}},
+        Vertex{.position = {-0.5f, 0.0f,  0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        Vertex{.position = { 0.5f, 0.0f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        Vertex{.position = {-0.5f, 0.0f,  0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        Vertex{.position = {-0.5f, 0.0f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
     };
 
-    mesh = vk_types::Buffer{
+    mesh.vertex_buffer = vk_types::TypedBuffer<Vertex>{
         core_.vma_allocator.vma_allocator,
-        mesh_array.size() * sizeof(vertex),
+        mesh_array.size(),
         vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer |
         vk::BufferUsageFlagBits::eTransferDst,
         VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
         VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT
     };
+    mesh.vertex_buffer_address = core_.device_.getBufferAddress({.buffer = mesh.vertex_buffer.buffer_});
 
-    const vk_types::Buffer staging{
+    const vk_types::TypedBuffer<Vertex> staging{
         core_.vma_allocator.vma_allocator,
-        mesh_array.size() * sizeof(vertex),
+        mesh_array.size(),
         vk::BufferUsageFlagBits::eTransferSrc,
         VMA_MEMORY_USAGE_AUTO,
         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
     };
 
 
-    staging.update(mesh_array.data(), mesh_array.size() * sizeof(vertex));
+    staging.update(mesh_array);
 
     vk::CommandBufferAllocateInfo cmAI{
         .commandPool = core_.graphics_command_pool,
@@ -146,7 +142,7 @@ VkEngine::VkEngine()
     };
     vk::raii::CommandBuffer command_buffer = std::move(core_.device_.allocateCommandBuffers(cmAI).front());
     command_buffer.begin({});
-    command_buffer.copyBuffer(staging.buffer_, mesh.buffer_, vk::BufferCopy{.srcOffset = 0, .dstOffset = 0, .size = mesh_array.size() * sizeof(vertex)});
+    command_buffer.copyBuffer(staging.buffer_, mesh.vertex_buffer.buffer_, vk::BufferCopy{.srcOffset = 0, .dstOffset = 0, .size = mesh_array.size() * sizeof(Vertex)});
     command_buffer.end();
     const vk::SubmitInfo submit_info = {
         .commandBufferCount = 1,
@@ -155,9 +151,6 @@ VkEngine::VkEngine()
 
     core_.graphics_queue.submit(submit_info);
     core_.device_.waitIdle();
-
-    mesh_address = core_.device_.getBufferAddress({.buffer = mesh.buffer_});
-
 
     is_initialized = true;
 }
@@ -180,15 +173,15 @@ void VkEngine::update() const
 
     const auto current_time = std::chrono::high_resolution_clock::now();
     const float time = std::chrono::duration<float>(current_time - start_time).count();
-    CameraData vp{};
-    vp.view_matrix = glm::lookAt(glm::vec3{2.0f * glm::sin(time), 2.0f * glm::cos(time), 0.0f},
+    CameraData camera_data{};
+    camera_data.view_matrix = glm::lookAt(glm::vec3{2.0f * glm::sin(time), 2.0f * glm::cos(time), 0.0f},
                                  glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
-    vp.projection_matrix = glm::perspective(glm::radians(30.0f),
+    camera_data.projection_matrix = glm::perspective(glm::radians(30.0f),
                                             static_cast<float>(swapchain_.extent.width) / static_cast<float>(swapchain_.
                                                 extent.height), 0.1f, 10.0f);
-    vp.projection_matrix[1][1] *= -1;
+    camera_data.projection_matrix[1][1] *= -1;
 
-    view_proj_uniform_[in_flight_index_].update(&vp, sizeof(vp));
+    view_proj_uniform_[in_flight_index_].update(&camera_data, sizeof(camera_data));
 }
 
 void VkEngine::draw()
@@ -255,7 +248,7 @@ void VkEngine::draw()
         }
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.getLayout(), 0,
                                           descriptor_set_[in_flight_index_], nullptr);
-        command_buffer.pushConstants<vk::DeviceAddress>(pipeline_.getLayout(), vk::ShaderStageFlagBits::eVertex, 0, mesh_address );
+        command_buffer.pushConstants<vk::DeviceAddress>(pipeline_.getLayout(), vk::ShaderStageFlagBits::eVertex, 0, mesh.vertex_buffer_address );
         command_buffer.draw(6, 1, 0, 0);
         command_buffer.endRendering();
 
