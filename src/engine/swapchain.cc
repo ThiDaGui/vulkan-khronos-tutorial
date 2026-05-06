@@ -94,11 +94,6 @@ void Swapchain::init(const Core& core,
     }
 }
 
-std::pair<vk::Result, uint32_t> Swapchain::Acquire() const
-{
-    return vk_swapchain.acquireNextImage(UINT64_MAX, *frame_acquired_semaphores[frame_acquired_index], nullptr);
-}
-
 vk::Result Swapchain::Present(const vk::raii::Queue& present_queue, uint32_t image_index)
 {
     const vk::PresentInfoKHR present_info = {

@@ -25,9 +25,9 @@ public:
 
     virtual ~Buffer();
 
-    Buffer(Buffer&& other) noexcept;
+    Buffer(Buffer&& rhs) noexcept;
 
-    Buffer& operator=(Buffer&& other) noexcept;
+    Buffer& operator=(Buffer&& rhs) noexcept;
 
     void swap(Buffer& rhs) noexcept;
 

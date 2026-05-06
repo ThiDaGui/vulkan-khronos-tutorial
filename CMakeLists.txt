@@ -56,6 +56,8 @@ target_include_directories(Imgui
         PRIVATE "${Vulkan_INCLUDE_DIR}"
 )
 
+target_link_libraries(Imgui PRIVATE glfw)
+
 add_executable(drawTriangleCpp
         src/main.cpp
 
@@ -76,9 +78,7 @@ add_executable(drawTriangleCpp
 
         src/utils/pipeline_builder.cc
         src/utils/descriptor_set_layout_builder.cc
-        src/utils/descriptor_set_layout_builder.hh
         src/types/buffer.cc
-        src/types/buffer.hh
 )
 
 target_sources(drawTriangleCpp
@@ -106,10 +106,12 @@ target_sources(drawTriangleCpp
             src/types/pipeline.hh
             src/types/mem_allocator.hh
             src/types/descriptor_allocator.hh
+            src/types/buffer.hh
             src/types/typed_buffer.hh
 
             src/utils/types.hh
             src/utils/pipeline_builder.hh
+            src/utils/descriptor_set_layout_builder.hh
 
             "${CMAKE_BINARY_DIR}/config.hh"
 )

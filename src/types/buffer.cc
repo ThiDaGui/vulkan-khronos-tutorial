@@ -43,14 +43,14 @@ Buffer::~Buffer()
     vmaDestroyBuffer(vma_allocator_, buffer_, buffer_memory_);
 }
 
-Buffer::Buffer(Buffer&& other) noexcept
+Buffer::Buffer(Buffer&& rhs) noexcept
 {
-    swap(other);
+    swap(rhs);
 }
 
-Buffer& Buffer::operator=(Buffer&& other) noexcept
+Buffer& Buffer::operator=(Buffer&& rhs) noexcept
 {
-    swap(other);
+    swap(rhs);
     return *this;
 }
 

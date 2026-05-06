@@ -20,7 +20,10 @@ struct Swapchain
     void init(const Core& core,
               const WindowSystem& window_system);
 
-    [[nodiscard]] std::pair<vk::Result, uint32_t> Acquire() const;
+    [[nodiscard]] auto Acquire() const
+    {
+        return vk_swapchain.acquireNextImage(UINT64_MAX, *frame_acquired_semaphores[frame_acquired_index], nullptr);
+    };
     [[nodiscard]] vk::Result Present(const vk::raii::Queue& present_queue, uint32_t image_index);
 
     [[nodiscard]] vk::Semaphore GetCurrentSemaphore() const;
