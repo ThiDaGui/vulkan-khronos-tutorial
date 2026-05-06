@@ -7,7 +7,7 @@
 
 namespace vk_tutorial::vk_types
 {
-class Buffer final : NonCopyable
+class Buffer : NonCopyable
 {
 public:
     vk::Buffer buffer_{};
@@ -23,7 +23,7 @@ public:
                     VmaMemoryUsage memory_usage,
                     VmaAllocationCreateFlags allocation_flags);
 
-    ~Buffer();
+    virtual ~Buffer();
 
     Buffer(Buffer&& other) noexcept;
 

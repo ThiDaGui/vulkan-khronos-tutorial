@@ -106,6 +106,7 @@ target_sources(drawTriangleCpp
             src/types/pipeline.hh
             src/types/mem_allocator.hh
             src/types/descriptor_allocator.hh
+            src/types/typed_buffer.hh
 
             src/utils/types.hh
             src/utils/pipeline_builder.hh
