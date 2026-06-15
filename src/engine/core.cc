@@ -9,22 +9,33 @@
 #include <unordered_set>
 
 #include "required_queue_family_indices.hh"
+#include "utils/required_features_checker.hh"
 
 namespace vk_tutorial
 {
+static const RequiredFeaturesChecker<vk::PhysicalDeviceFeatures2,
+                                     vk::PhysicalDeviceVulkan11Features,
+                                     vk::PhysicalDeviceVulkan12Features,
+                                     vk::PhysicalDeviceVulkan13Features> required_features{
+    {.features = {.samplerAnisotropy = true}},
+    {.shaderDrawParameters = true},
+    {.scalarBlockLayout = true, .bufferDeviceAddress = true},
+    {.synchronization2 = true, .dynamicRendering = true},
+};
+
 uint32_t grade_physical_device(const vk::raii::PhysicalDevice& physical_device,
                                const vk::raii::SurfaceKHR& surface,
                                const std::span<const char* const> required_extensions)
 {
     {
-        // TODO : Check if required Vulkan features are supported
-
         const auto& device_properties = physical_device.getProperties();
-        const auto& device_features = physical_device.getFeatures();
         const auto& device_extensions = physical_device.enumerateDeviceExtensionProperties();
         RequiredQueueFamilyIndices required_queue_family_indices{};
 
         if (device_properties.apiVersion < vk::ApiVersion13)
+            return 0;
+
+        if (!required_features.check_supported(physical_device))
             return 0;
 
         for (const char* const required_extension : required_extensions)
@@ -57,7 +68,7 @@ uint32_t grade_physical_device(const vk::raii::PhysicalDevice& physical_device,
             break;
         }
 
-        if (device_features.samplerAnisotropy)
+        if (required_features.get().features.samplerAnisotropy)
             score += static_cast<uint32_t>(device_properties.limits.maxSamplerAnisotropy) * 10;
 
         return score;
@@ -142,7 +153,6 @@ void Core::init(std::span<const char* const> instance_extensions,
 
     // Create device
     {
-        // TODO : Check Vulkan Features
         const std::vector<vk::raii::PhysicalDevice> physical_devices = instance_.enumeratePhysicalDevices();
         if (physical_devices.empty())
             throw std::runtime_error("Failed to find GPU with Vulkan support!");
@@ -193,20 +203,8 @@ void Core::init(std::span<const char* const> instance_extensions,
             queue_create_infos.emplace_back(create_info);
         }
 
-        const vk::StructureChain<vk::PhysicalDeviceFeatures2,
-                                 vk::PhysicalDeviceVulkan11Features,
-                                 vk::PhysicalDeviceVulkan12Features,
-                                 vk::PhysicalDeviceVulkan13Features,
-                                 vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> feature_chain = {
-            {.features = {.samplerAnisotropy = true}},
-            {.shaderDrawParameters = true},
-            { .scalarBlockLayout = true, .bufferDeviceAddress = true},
-            {.synchronization2 = true, .dynamicRendering = true},
-            {.extendedDynamicState = true}
-        };
-
         vk::DeviceCreateInfo create_info = {
-            .pNext = feature_chain.get(),
+            .pNext = &required_features.get(),
             .queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size()),
             .pQueueCreateInfos = queue_create_infos.data(),
             .enabledExtensionCount = static_cast<uint32_t>(device_extensions.size()),

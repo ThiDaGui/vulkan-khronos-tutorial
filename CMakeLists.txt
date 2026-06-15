@@ -112,6 +112,7 @@ target_sources(drawTriangleCpp
             src/utils/types.hh
             src/utils/pipeline_builder.hh
             src/utils/descriptor_set_layout_builder.hh
+            src/utils/required_features_checker.hh
 
             "${CMAKE_BINARY_DIR}/config.hh"
 )
