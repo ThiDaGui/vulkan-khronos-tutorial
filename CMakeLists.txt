@@ -3,8 +3,9 @@ project(vulkan_khronos_tutorial LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
-find_package(glfw3 REQUIRED)
-find_package(Vulkan REQUIRED COMPONENTS slangc)
+find_package(glfw3 CONFIG REQUIRED)
+find_package(Vulkan REQUIRED)
+find_package(slang CONFIG REQUIRED)
 
 set(DATA_DIR ${CMAKE_SOURCE_DIR}/data)
 set(SHADER_SOURCE_DIR ${CMAKE_SOURCE_DIR}/shaders)
@@ -18,7 +19,7 @@ function(add_slang_shader TARGET)
     string(JOIN "." TARGET_OUTPUT_NAME "${TARGET}" "spv")
     add_custom_command(
             OUTPUT ${SHADER_BINARY_DIR}/${TARGET_OUTPUT_NAME}
-            COMMAND Vulkan::slangc -target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o ${SHADER_BINARY_DIR}/${TARGET_OUTPUT_NAME} -- ${SHADER_SOURCES}
+            COMMAND slang::slangc -target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o ${SHADER_BINARY_DIR}/${TARGET_OUTPUT_NAME} -- ${SHADER_SOURCES}
             DEPENDS ${SHADER_SOURCES}
             COMMENT "Compiling slang shader ${TARGET}"
             VERBATIM
@@ -86,7 +87,6 @@ target_sources(drawTriangleCpp
         FILE_SET internal_headers
         TYPE HEADERS
         BASE_DIRS
-            "${Vulkan_INCLUDE_DIR}"
             "${CMAKE_BINARY_DIR}"
             external
             src

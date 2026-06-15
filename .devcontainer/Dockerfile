@@ -10,20 +10,19 @@ RUN if [ "${REINSTALL_CMAKE_VERSION_FROM_SOURCE}" != "none" ]; then \
     fi \
     && rm -f /tmp/reinstall-cmake.sh
 
-# [Optional] Uncomment this section to install additional vcpkg ports.
-# RUN su vscode -c "${VCPKG_ROOT}/vcpkg install <your-port-name-here>"
-
-COPY get-vulkanSDK.sh /tmp/
-
-RUN chmod +x /tmp/get-vulkanSDK.sh && /tmp/get-vulkanSDK.sh
-
-# [Optional] Uncomment this section to install additional packages.
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    # [Optional] Uncomment this section to install additional packages.
+RUN apt-get update && apt-get upgrade -y && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends  \
-    libvulkan1 \
     mesa-vulkan-drivers \
-    clang-tools  \
-    libglfw3-dev  \
-    libglm-dev  \
-    libxrandr-dev  \
-    libwayland-dev
+    autoconf automake libtool m4 autoconf-archive \
+    libwayland-dev libxkbcommon-dev libegl1-mesa-dev libx11-dev libxft-dev libxext-dev libibus-1.0-dev \
+    libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev \
+    python3.13-venv python3-jinja2 \
+    libltdl-dev \
+    wayland-protocols flex bison libx11-xcb-dev "^libxcb.*-dev" libxkbcommon-x11-dev \
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+RUN cd "${VCPKG_ROOT}" && git pull --ff-only
+
+# [Optional] Uncomment this section to install additional vcpkg ports.
+# RUN su vscode -c "${VCPKG_ROOT}/vcpkg install glfw3"

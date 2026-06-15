@@ -33,7 +33,6 @@
 
   "containerEnv": {
     "HOME": "/home/vscode"
-
   },
   remoteEnv: {
     "WAYLAND_DISPLAY": "${localEnv:WAYLAND_DISPLAY}",
@@ -43,7 +42,7 @@
   mounts: [
     {
       "source": "${localEnv:XDG_RUNTIME_DIR}/${localEnv:WAYLAND_DISPLAY}",
-      "target": "/tmp/wayland-0",
+      "target": "/tmp/${localEnv:WAYLAND_DISPLAY}",
       "type": "bind"
     },
     {
@@ -54,7 +53,7 @@
     {
       "source": "/dev/snd",
       "target": "/dev/snd",
-      "type": "bind",
+      "type": "bind"
     }
   ]
 }

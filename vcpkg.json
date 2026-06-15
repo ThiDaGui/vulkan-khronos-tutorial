@@ -1,0 +1,28 @@
+{
+  "name": "vulkan-scrappy-engine",
+  "version-string": "1.0.0",
+  "dependencies": [
+    {
+      "name": "glfw3",
+      "features": [
+        "wayland"
+      ]
+    },
+    {
+      "name": "vulkan-sdk-components",
+      "version>=": "1.4.328.0",
+      "features": [
+        "tools"
+      ]
+    },
+    {
+      "name": "vulkan-loader",
+      "features": [
+        "wayland"
+      ]
+    },
+    {
+      "name": "shader-slang"
+    }
+  ]
+}
