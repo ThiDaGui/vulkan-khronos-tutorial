@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 project(vulkan_khronos_tutorial LANGUAGES CXX)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(slang CONFIG REQUIRED)
