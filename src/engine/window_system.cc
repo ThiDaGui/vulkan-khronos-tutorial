@@ -20,7 +20,11 @@ WindowSystem::~WindowSystem()
 
 void WindowSystem::init(const uint32_t width, const uint32_t height, const char* name)
 {
-    glfwInit();
+    if (!glfwInit())
+        throw std::runtime_error("Failed to init GLFW !");
+    if (!glfwVulkanSupported())
+        throw std::runtime_error("vulkan not supported !");
+
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window = glfwCreateWindow(static_cast<int>(width), static_cast<int>(height), name, nullptr, nullptr);
     if (nullptr == window)
@@ -33,6 +37,9 @@ std::vector<const char*> WindowSystem::getRequiredExtensions()
 {
     uint32_t glfw_extension_count = 0;
     const auto glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+    if (nullptr == glfw_extensions)
+        throw std::runtime_error("Failed to get required instance extensions !");
+
     return {glfw_extensions, glfw_extensions + glfw_extension_count};
 }
 
@@ -41,7 +48,7 @@ vk::raii::SurfaceKHR WindowSystem::createSurface(const vk::raii::Instance& insta
     VkSurfaceKHR vk_surface;
     auto err = glfwCreateWindowSurface(*instance, window, nullptr, &vk_surface);
     if (static_cast<VkResult>(vk::Result::eSuccess) != err)
-        throw std::runtime_error("failed to create window surface!");
+        throw std::runtime_error("failed to create window surface : " + vk::to_string(static_cast<vk::Result>(err)));
     return {instance, vk_surface};
 }
 
