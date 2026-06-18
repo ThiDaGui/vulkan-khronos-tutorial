@@ -26,6 +26,8 @@ class PipelineBuilder
 
     vk::PipelineMultisampleStateCreateInfo multisample_state_create_info;
 
+    vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info;
+
     vk::PipelineColorBlendStateCreateInfo color_blend_state_create_info;
 
     vk::PipelineRenderingCreateInfo rendering_create_info;
@@ -56,6 +58,10 @@ public:
     PipelineBuilder& setPipelineLayout(const vk::PipelineLayout& pipeline_layout);
 
     PipelineBuilder& setColorAttachment(std::span<const vk::Format> color_attachments);
+
+    PipelineBuilder& setDepthAttachment( vk::Format depth_stencil_format);
+
+    PipelineBuilder& setDepthTest(bool depth_test, bool depth_write, vk::CompareOp depth_compare_op);
 
     vk_types::Pipeline buildGraphics(const vk::raii::Device& device);
 };

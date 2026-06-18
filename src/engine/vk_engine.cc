@@ -46,6 +46,19 @@ VkEngine::VkEngine()
             vk::ImageAspectFlagBits::eColor
         );
     }
+    depth_render_target_.reserve(FRAME_OVERLAP);
+    for (size_t i = 0; i < FRAME_OVERLAP; i++)
+    {
+        depth_render_target_.emplace_back(
+            core_.device_,
+            core_.vma_allocator.vma_allocator,
+            vk::Format::eD32Sfloat,
+            swapchain_.extent,
+            vk::SampleCountFlagBits::e1,
+            vk_types::Image::Usage::eDepthStencil,
+            vk::ImageAspectFlagBits::eDepth
+        );
+    }
 
     std::array descriptor_entries{
         vk_types::DescriptorAllocator::DescriptorEntry{vk::DescriptorType::eUniformBuffer, 1}
@@ -103,16 +116,23 @@ VkEngine::VkEngine()
 
     const auto pipeline_layout = (*core_.device_).createPipelineLayout(pipeline_layout_create_info);
     pipeline_ = vk_types::Pipeline::CreateGraphicPipeline(core_.device_, shaderPath / "triangle_slang.spv",
-                                                          color_attachments, pipeline_layout);
+                                                          color_attachments,
+                                                          depth_render_target_[0].image_format_,
+                                                          pipeline_layout);
 
     constexpr std::array mesh_array{
-        Vertex{.position = { 0.5f, 0.0f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-        Vertex{.position = { 0.5f, 0.0f,  0.5f}, .color = {1.0f, 1.0f, 0.0f}},
-        Vertex{.position = {-0.5f, 0.0f,  0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-        Vertex{.position = { 0.5f, 0.0f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-        Vertex{.position = {-0.5f, 0.0f,  0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-        Vertex{.position = {-0.5f, 0.0f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
-    };
+        Vertex{.position = {0.5f, 0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        Vertex{.position = {0.5f, 0.25f, 0.5f}, .color = {1.0f, 1.0f, 0.0f}},
+        Vertex{.position = {-0.5f, 0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        Vertex{.position = {0.5f, 0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        Vertex{.position = {-0.5f, 0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        Vertex{.position = {-0.5f, 0.25f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
+        Vertex{.position = {0.5f, -0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        Vertex{.position = {0.5f, -0.25f, 0.5f}, .color = {1.0f, 1.0f, 0.0f}},
+        Vertex{.position = {-0.5f, -0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        Vertex{.position = {0.5f, -0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        Vertex{.position = {-0.5f, -0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        Vertex{.position = {-0.5f, -0.25f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},    };
 
     mesh.vertex_buffer = vk_types::TypedBuffer<Vertex>{
         core_.vma_allocator.vma_allocator,
@@ -175,11 +195,10 @@ void VkEngine::update() const
     const float time = std::chrono::duration<float>(current_time - start_time).count();
     CameraData camera_data{};
     camera_data.view_matrix = glm::lookAt(glm::vec3{2.0f * glm::sin(time), 2.0f * glm::cos(time), 0.0f},
-                                 glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
-    camera_data.projection_matrix = glm::perspective(glm::radians(30.0f),
-                                            static_cast<float>(swapchain_.extent.width) / static_cast<float>(swapchain_.
-                                                extent.height), 0.1f, 10.0f);
-    camera_data.projection_matrix[1][1] *= -1;
+                                          glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
+    camera_data.SetProjection(glm::radians(30.0f),
+                              swapchain_.GetAspectRatio<float>(),
+                              0.1f);
 
     view_proj_uniform_[in_flight_index_].update(&camera_data, sizeof(camera_data));
 }
@@ -213,6 +232,14 @@ void VkEngine::draw()
                                                           vk::ImageLayout::eUndefined,
                                                           vk::ImageLayout::eColorAttachmentOptimal,
                                                           vk::ImageAspectFlagBits::eColor);
+        depth_render_target_[in_flight_index_].transition(command_buffer,
+                                                          vk::PipelineStageFlagBits2::eNone,
+                                                          vk::AccessFlagBits2::eNone,
+                                                          vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+                                                          vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+                                                          vk::ImageLayout::eUndefined,
+                                                          vk::ImageLayout::eDepthAttachmentOptimal,
+                                                          vk::ImageAspectFlagBits::eDepth);
 
         constexpr vk::ClearValue clear_color = vk::ClearColorValue{0.5f, 0.5f, 0.5f, 1.0f};
         vk::RenderingAttachmentInfo attachment_info = {
@@ -222,11 +249,20 @@ void VkEngine::draw()
             .storeOp = vk::AttachmentStoreOp::eStore,
             .clearValue = clear_color,
         };
+
+        vk::RenderingAttachmentInfo depth_attachment = {
+            .imageView = depth_render_target_[in_flight_index_].image_view_,
+            .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
+            .loadOp = vk::AttachmentLoadOp::eClear,
+            .storeOp = vk::AttachmentStoreOp::eStore,
+            .clearValue = vk::ClearDepthStencilValue{0.0, 0},
+        };
         const vk::RenderingInfo rendering_info = {
             .renderArea = {.offset = {0, 0}, .extent = swapchain_.extent},
             .layerCount = 1,
             .colorAttachmentCount = 1,
-            .pColorAttachments = &attachment_info
+            .pColorAttachments = &attachment_info,
+            .pDepthAttachment = &depth_attachment,
         };
 
         command_buffer.beginRendering(rendering_info);
@@ -248,8 +284,9 @@ void VkEngine::draw()
         }
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.getLayout(), 0,
                                           descriptor_set_[in_flight_index_], nullptr);
-        command_buffer.pushConstants<vk::DeviceAddress>(pipeline_.getLayout(), vk::ShaderStageFlagBits::eVertex, 0, mesh.vertex_buffer_address );
-        command_buffer.draw(6, 1, 0, 0);
+        command_buffer.pushConstants<vk::DeviceAddress>(pipeline_.getLayout(), vk::ShaderStageFlagBits::eVertex, 0,
+                                                        mesh.vertex_buffer_address);
+        command_buffer.draw(12, 1, 0, 0);
         command_buffer.endRendering();
 
         color_render_target_[in_flight_index_].transition(
@@ -309,6 +346,20 @@ void VkEngine::draw()
                 vk::SampleCountFlagBits::e1,
                 vk_types::Image::Usage::eColorAttachment,
                 vk::ImageAspectFlagBits::eColor
+            );
+        }
+        depth_render_target_.clear();
+        depth_render_target_.reserve(FRAME_OVERLAP);
+        for (size_t i = 0; i < FRAME_OVERLAP; i++)
+        {
+            depth_render_target_.emplace_back(
+                core_.device_,
+                core_.vma_allocator.vma_allocator,
+                vk::Format::eD32Sfloat,
+                swapchain_.extent,
+                vk::SampleCountFlagBits::e1,
+                vk_types::Image::Usage::eDepthStencil,
+                vk::ImageAspectFlagBits::eDepth
             );
         }
     }

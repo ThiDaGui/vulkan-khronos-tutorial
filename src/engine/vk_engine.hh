@@ -18,6 +18,16 @@ struct CameraData
 {
     glm::mat4 view_matrix;
     glm::mat4 projection_matrix;
+
+    void SetProjection(const float fov_y, const float aspect, const float near)
+    {
+        const float tan_half_fov_y = 1.0f / std::tan(0.5f * fov_y);
+        projection_matrix = {0.0f};
+        projection_matrix[0][0] = tan_half_fov_y / aspect;
+        projection_matrix[1][1] = -tan_half_fov_y;
+        projection_matrix[2][3] = -1.0f;
+        projection_matrix[3][2] = near;
+    }
 };
 
 struct Vertex
@@ -57,6 +67,7 @@ private:
     std::vector<vk::raii::Fence> in_flight_fences_{};
 
     std::vector<vk_types::Image> color_render_target_{};
+    std::vector<vk_types::Image> depth_render_target_{};
 
     vk_types::DescriptorAllocator descriptor_allocator_{};
     std::array<vk::DescriptorSet, FRAME_OVERLAP> descriptor_set_{};

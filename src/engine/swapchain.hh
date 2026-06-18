@@ -30,6 +30,12 @@ struct Swapchain
 
     void recreate(const Core& core, const WindowSystem& window_system);
 
+    template <typename T>
+    [[nodiscard]] T GetAspectRatio() const
+    {
+        return static_cast<T>(extent.width) / static_cast<T>(extent.height);
+    }
+
     vk::raii::SwapchainKHR vk_swapchain{nullptr};
     uint32_t min_image_count{};
     uint32_t image_count{};

@@ -36,11 +36,13 @@ Image::Image(const vk::raii::Device& device,
                                   vk::ImageUsageFlagBits::eTransferSrc |
                                   vk::ImageUsageFlagBits::eStorage;
         alloc_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+        alloc_create_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         break;
-    case Usage::eDepth:
-        [[fallthrough]];
     case Usage::eDepthStencil:
-        [[fallthrough]];
+        image_create_info.usage = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+        alloc_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+        alloc_create_info.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        break;
     default:
         std::abort();
     }

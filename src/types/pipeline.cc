@@ -63,6 +63,7 @@ const vk::PipelineLayout& Pipeline::getLayout() const
 Pipeline Pipeline::CreateGraphicPipeline(const vk::raii::Device& device,
                                          const std::filesystem::path& shader_path,
                                          const std::span<const vk::Format> color_attachments,
+                                         const vk::Format depth_attachment,
                                          const vk::PipelineLayout& pipeline_layout)
 {
     PipelineBuilder builder{};
@@ -85,6 +86,8 @@ Pipeline Pipeline::CreateGraphicPipeline(const vk::raii::Device& device,
                                  vk::ColorComponentFlagBits::eA
            })
            .setColorAttachment(color_attachments)
+           .setDepthAttachment(depth_attachment)
+           .setDepthTest(true, true, vk::CompareOp::eGreater)
            .setPipelineLayout(pipeline_layout);
     return builder.buildGraphics(device);
 }

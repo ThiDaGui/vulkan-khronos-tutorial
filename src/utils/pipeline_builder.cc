@@ -115,6 +115,20 @@ PipelineBuilder& PipelineBuilder::setColorAttachment(std::span<const vk::Format>
     return *this;
 }
 
+PipelineBuilder& PipelineBuilder::setDepthAttachment(const vk::Format depth_stencil_format)
+{
+    rendering_create_info.setDepthAttachmentFormat(depth_stencil_format);
+    return *this;
+}
+
+PipelineBuilder& PipelineBuilder::setDepthTest(const bool depth_test, const bool depth_write, const vk::CompareOp depth_compare_op)
+{
+    depth_stencil_state_create_info.depthTestEnable = depth_test;
+    depth_stencil_state_create_info.depthWriteEnable = depth_write;
+    depth_stencil_state_create_info.depthCompareOp = depth_compare_op;
+    return *this;
+}
+
 vk_types::Pipeline PipelineBuilder::buildGraphics(const vk::raii::Device& device)
 {
     color_blend_state_create_info.setAttachments(color_blend_attachment_states);
@@ -127,12 +141,15 @@ vk_types::Pipeline PipelineBuilder::buildGraphics(const vk::raii::Device& device
         .pViewportState = &viewport_state_create_info,
         .pRasterizationState = &rasterization_state_create_info,
         .pMultisampleState = &multisample_state_create_info,
+        .pDepthStencilState = &depth_stencil_state_create_info,
         .pColorBlendState = &color_blend_state_create_info,
         .pDynamicState = &dynamic_state_create_info,
         .layout = layout,
         .renderPass = nullptr,
     };
 
-    return vk_types::Pipeline{vk::raii::Pipeline{device, nullptr, create_info}, vk::raii::PipelineLayout(device, layout)};
+    return vk_types::Pipeline{
+        vk::raii::Pipeline{device, nullptr, create_info}, vk::raii::PipelineLayout(device, layout)
+    };
 }
 }
