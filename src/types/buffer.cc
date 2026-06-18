@@ -8,6 +8,7 @@ Buffer::Buffer(const VmaAllocator vma_allocator,
                const VmaMemoryUsage memory_usage,
                const VmaAllocationCreateFlags allocation_flags)
     : vma_allocator_{vma_allocator}
+    , buffer_size_{buffer_size}
 {
     vk::BufferCreateInfo buffer_create_info = {
         .size = buffer_size,
@@ -60,12 +61,15 @@ void Buffer::swap(Buffer& rhs) noexcept
     std::swap(buffer_memory_, rhs.buffer_memory_);
     std::swap(buffer_mapped_, rhs.buffer_mapped_);
     std::swap(vma_allocator_, rhs.vma_allocator_);
+    std::swap(buffer_size_, rhs.buffer_size_);
 }
 
 void Buffer::update(const void* data, const size_t size) const
 {
     if (!buffer_mapped_)
-        throw std::runtime_error("Buffer cannot be updated because it is not host visible");
+        throw std::runtime_error("Failed to update buffer : buffer is not host visible");
+    if (size > buffer_size_)
+        throw std::runtime_error("Failed to update buffer : size > buffer_size");
     memcpy(buffer_mapped_, data, size);
     vmaFlushAllocation(vma_allocator_, buffer_memory_, 0, size);
 }

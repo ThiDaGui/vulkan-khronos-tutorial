@@ -14,6 +14,7 @@ public:
     VmaAllocation buffer_memory_{};
     void* buffer_mapped_{nullptr};
     VmaAllocator vma_allocator_{};
+    size_t buffer_size_;
 
     Buffer() = default;
 
