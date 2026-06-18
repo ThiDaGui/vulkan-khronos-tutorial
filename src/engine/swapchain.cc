@@ -9,12 +9,12 @@ namespace vk_tutorial
 void Swapchain::init(const Core& core,
                      const WindowSystem& window_system)
 {
-    const vk::SurfaceCapabilitiesKHR surface_capabilities = core.physical_device_.getSurfaceCapabilitiesKHR(
-        core.surface_);
-    const std::vector<vk::SurfaceFormatKHR> surface_formats = core.physical_device_.getSurfaceFormatsKHR(
-        core.surface_);
-    const std::vector<vk::PresentModeKHR> present_modes = core.physical_device_.getSurfacePresentModesKHR(
-        core.surface_);
+    const vk::SurfaceCapabilitiesKHR surface_capabilities =
+        core.physical_device.getSurfaceCapabilitiesKHR(core.surface);
+    const std::vector<vk::SurfaceFormatKHR> surface_formats =
+        core.physical_device.getSurfaceFormatsKHR(core.surface);
+    const std::vector<vk::PresentModeKHR> present_modes =
+        core.physical_device.getSurfacePresentModesKHR(core.surface);
 
     extent = chooseExtent2D(window_system, surface_capabilities);
     min_image_count = chooseMinImageCount(surface_capabilities);
@@ -22,7 +22,7 @@ void Swapchain::init(const Core& core,
     const vk::PresentModeKHR present_mode = choosePresentMode(present_modes);
 
     vk::SwapchainCreateInfoKHR swapchain_create_info = {
-        .surface = core.surface_,
+        .surface = core.surface,
         .minImageCount = min_image_count,
         .imageFormat = surface_format.format,
         .imageColorSpace = surface_format.colorSpace,
@@ -53,7 +53,7 @@ void Swapchain::init(const Core& core,
         swapchain_create_info.pQueueFamilyIndices = queue_family_indices.data();
     }
 
-    vk_swapchain = vk::raii::SwapchainKHR{core.device_, swapchain_create_info};
+    vk_swapchain = vk::raii::SwapchainKHR{core.device, swapchain_create_info};
     image_format = surface_format.format;
     images = vk_swapchain.getImages();
 
@@ -84,17 +84,17 @@ void Swapchain::init(const Core& core,
     for (uint32_t i = 0; i < image_count; i++)
     {
         image_view_create_info.image = images[i];
-        frames_data[i].image_view = core.device_.createImageView(image_view_create_info);
+        frames_data[i].image_view = core.device.createImageView(image_view_create_info);
         frames_data[i].command_buffer = std::move(vk::raii::CommandBuffers{
-            core.device_, graphics_command_buffer_allocate_info
+            core.device, graphics_command_buffer_allocate_info
         }.front());
-        frames_data[i].is_presentable_semaphore = core.device_.createSemaphore({});
+        frames_data[i].is_presentable_semaphore = core.device.createSemaphore({});
 
-        frame_acquired_semaphores.emplace_back(core.device_, vk::SemaphoreCreateInfo{});
+        frame_acquired_semaphores.emplace_back(core.device, vk::SemaphoreCreateInfo{});
     }
 }
 
-vk::Result Swapchain::Present(const vk::raii::Queue& present_queue, uint32_t image_index)
+vk::Result Swapchain::present(const vk::raii::Queue& present_queue, uint32_t image_index)
 {
     const vk::PresentInfoKHR present_info = {
         .waitSemaphoreCount = 1,
@@ -109,14 +109,14 @@ vk::Result Swapchain::Present(const vk::raii::Queue& present_queue, uint32_t ima
     return present_queue.presentKHR(present_info);
 }
 
-vk::Semaphore Swapchain::GetCurrentSemaphore() const
+vk::Semaphore Swapchain::getCurrentSemaphore() const
 {
     return frame_acquired_semaphores[frame_acquired_index];
 }
 
 void Swapchain::recreate(const Core& core, const WindowSystem& window_system)
 {
-    core.device_.waitIdle();
+    core.device.waitIdle();
     frames_data.clear();
     vk_swapchain.clear();
     init(core, window_system);

@@ -20,18 +20,19 @@ struct Swapchain
     void init(const Core& core,
               const WindowSystem& window_system);
 
-    [[nodiscard]] auto Acquire() const
+    [[nodiscard]] auto acquire() const
     {
         return vk_swapchain.acquireNextImage(UINT64_MAX, *frame_acquired_semaphores[frame_acquired_index], nullptr);
     };
-    [[nodiscard]] vk::Result Present(const vk::raii::Queue& present_queue, uint32_t image_index);
 
-    [[nodiscard]] vk::Semaphore GetCurrentSemaphore() const;
+    [[nodiscard]] vk::Result present(const vk::raii::Queue& present_queue, uint32_t image_index);
+
+    [[nodiscard]] vk::Semaphore getCurrentSemaphore() const;
 
     void recreate(const Core& core, const WindowSystem& window_system);
 
     template <typename T>
-    [[nodiscard]] T GetAspectRatio() const
+    [[nodiscard]] T getAspectRatio() const
     {
         return static_cast<T>(extent.width) / static_cast<T>(extent.height);
     }

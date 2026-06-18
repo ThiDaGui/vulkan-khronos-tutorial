@@ -6,33 +6,33 @@ namespace vk_tutorial
 {
 class PipelineBuilder
 {
-    static constexpr std::array dynamic_states{vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+    static constexpr std::array DYNAMIC_STATES{vk::DynamicState::eViewport, vk::DynamicState::eScissor};
 
-    std::vector<vk::PipelineShaderStageCreateInfo> shader_stages;
+    std::vector<vk::PipelineShaderStageCreateInfo> shader_stages_;
 
-    std::vector<vk::PipelineColorBlendAttachmentState> color_blend_attachment_states;
+    std::vector<vk::PipelineColorBlendAttachmentState> color_blend_attachment_states_;
 
-    std::vector<vk::PushConstantRange> push_constant_ranges;
+    std::vector<vk::PushConstantRange> push_constant_ranges_;
 
-    vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info;
+    vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info_;
 
-    vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info;
+    vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info_;
 
-    vk::PipelineViewportStateCreateInfo viewport_state_create_info;
+    vk::PipelineViewportStateCreateInfo viewport_state_create_info_;
 
-    vk::PipelineDynamicStateCreateInfo dynamic_state_create_info;
+    vk::PipelineDynamicStateCreateInfo dynamic_state_create_info_;
 
-    vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info;
+    vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info_;
 
-    vk::PipelineMultisampleStateCreateInfo multisample_state_create_info;
+    vk::PipelineMultisampleStateCreateInfo multisample_state_create_info_;
 
-    vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info;
+    vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info_;
 
-    vk::PipelineColorBlendStateCreateInfo color_blend_state_create_info;
+    vk::PipelineColorBlendStateCreateInfo color_blend_state_create_info_;
 
-    vk::PipelineRenderingCreateInfo rendering_create_info;
+    vk::PipelineRenderingCreateInfo rendering_create_info_;
 
-    vk::PipelineLayout layout;
+    vk::PipelineLayout layout_;
 
 public:
     PipelineBuilder();
@@ -59,7 +59,7 @@ public:
 
     PipelineBuilder& setColorAttachment(std::span<const vk::Format> color_attachments);
 
-    PipelineBuilder& setDepthAttachment( vk::Format depth_stencil_format);
+    PipelineBuilder& setDepthAttachment(vk::Format depth_stencil_format);
 
     PipelineBuilder& setDepthTest(bool depth_test, bool depth_write, vk::CompareOp depth_compare_op);
 

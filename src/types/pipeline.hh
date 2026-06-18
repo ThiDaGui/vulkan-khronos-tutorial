@@ -26,10 +26,10 @@ public:
 
     void swap(Pipeline& other) noexcept;
 
-    const vk::Pipeline& getPipeline() const;
-    const vk::PipelineLayout& getLayout() const;
+    [[nodiscard]] const vk::Pipeline& getPipeline() const;
+    [[nodiscard]] const vk::PipelineLayout& getLayout() const;
 
-    static Pipeline CreateGraphicPipeline(const vk::raii::Device& device, const std::filesystem::path& shader_path,
+    static Pipeline createGraphicPipeline(const vk::raii::Device& device, const std::filesystem::path& shader_path,
                                           std::span<const vk::Format> color_attachments,
                                           vk::Format depth_attachment, const vk::PipelineLayout& pipeline_layout);
 };

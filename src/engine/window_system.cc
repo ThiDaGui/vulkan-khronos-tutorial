@@ -4,9 +4,9 @@
 
 namespace vk_tutorial
 {
-void framebufferResizeCallback(GLFWwindow *window, int width, int height)
+void framebufferResizeCallback(GLFWwindow* window, [[maybe_unused]] int width, [[maybe_unused]] int height)
 {
-    const auto window_system = static_cast<WindowSystem *>(glfwGetWindowUserPointer(window));
+    const auto window_system = static_cast<WindowSystem*>(glfwGetWindowUserPointer(window));
     window_system->resized = true;
 }
 

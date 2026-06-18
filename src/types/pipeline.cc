@@ -60,7 +60,7 @@ const vk::PipelineLayout& Pipeline::getLayout() const
     return *layout_;
 }
 
-Pipeline Pipeline::CreateGraphicPipeline(const vk::raii::Device& device,
+Pipeline Pipeline::createGraphicPipeline(const vk::raii::Device& device,
                                          const std::filesystem::path& shader_path,
                                          const std::span<const vk::Format> color_attachments,
                                          const vk::Format depth_attachment,

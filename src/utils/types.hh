@@ -4,7 +4,7 @@ namespace vk_tutorial
 {
 struct NonCopyable
 {
-    constexpr NonCopyable() {};
+    constexpr NonCopyable() = default;
 
     NonCopyable(const NonCopyable&) = delete;
     NonCopyable& operator=(const NonCopyable&) = delete;
@@ -15,7 +15,7 @@ struct NonCopyable
 
 struct NonMovable : NonCopyable
 {
-    constexpr NonMovable() {};
+    constexpr NonMovable() = default;
 
     NonMovable(NonMovable&&) noexcept = delete;
     NonMovable& operator=(NonMovable&&) noexcept = delete;

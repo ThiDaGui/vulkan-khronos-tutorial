@@ -18,12 +18,12 @@ public:
         eDepthStencil,
     };
 
-    vk::Extent3D image_extent_{};
-    vk::Format image_format_{};
-    vk::raii::Image image_{nullptr};
-    vk::raii::ImageView image_view_{nullptr};
-    VmaAllocation image_memory_{nullptr};
-    VmaAllocator vma_allocator_{};
+    vk::Extent3D image_extent{};
+    vk::Format image_format{};
+    vk::raii::Image image{nullptr};
+    vk::raii::ImageView image_view{nullptr};
+    VmaAllocation image_memory{nullptr};
+    VmaAllocator vma_allocator{};
 
     Image() = default;
 

@@ -8,7 +8,6 @@
 
 namespace vk_tutorial
 {
-
 VkEngine::VkEngine()
 {
     window_system_.init(window_extent.width, window_extent.height, "Vulkan Tutorial");
@@ -30,14 +29,14 @@ VkEngine::VkEngine()
     in_flight_fences_.reserve(FRAME_OVERLAP);
     for (auto i = 0; i < FRAME_OVERLAP; i++)
     {
-        in_flight_fences_.emplace_back(core_.device_, fence_create_info);
+        in_flight_fences_.emplace_back(core_.device, fence_create_info);
     }
 
     color_render_target_.reserve(FRAME_OVERLAP);
     for (size_t i = 0; i < FRAME_OVERLAP; i++)
     {
         color_render_target_.emplace_back(
-            core_.device_,
+            core_.device,
             core_.vma_allocator.vma_allocator,
             vk::Format::eR16G16B16A16Sfloat,
             swapchain_.extent,
@@ -50,7 +49,7 @@ VkEngine::VkEngine()
     for (size_t i = 0; i < FRAME_OVERLAP; i++)
     {
         depth_render_target_.emplace_back(
-            core_.device_,
+            core_.device,
             core_.vma_allocator.vma_allocator,
             vk::Format::eD32Sfloat,
             swapchain_.extent,
@@ -64,14 +63,14 @@ VkEngine::VkEngine()
         vk_types::DescriptorAllocator::DescriptorEntry{vk::DescriptorType::eUniformBuffer, 1}
     };
     descriptor_set_layout_ = DescriptorSetLayoutBuilder()
-                             .AddBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex)
-                             .Build(core_.device_);
+                             .addBinding(0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex)
+                             .build(core_.device);
 
-    descriptor_allocator_ = vk_types::DescriptorAllocator{core_.device_, FRAME_OVERLAP, descriptor_entries};
+    descriptor_allocator_ = vk_types::DescriptorAllocator{core_.device, FRAME_OVERLAP, descriptor_entries};
 
     descriptor_set_ = {
-        descriptor_allocator_.allocate(core_.device_, descriptor_set_layout_),
-        descriptor_allocator_.allocate(core_.device_, descriptor_set_layout_),
+        descriptor_allocator_.allocate(core_.device, descriptor_set_layout_),
+        descriptor_allocator_.allocate(core_.device, descriptor_set_layout_),
     };
 
 
@@ -92,7 +91,7 @@ VkEngine::VkEngine()
     for (size_t i = 0; i < FRAME_OVERLAP; i++)
     {
         vk::DescriptorBufferInfo info = {
-            view_proj_uniform_[i].buffer_, 0, sizeof(CameraData)
+            view_proj_uniform_[i].buffer, 0, sizeof(CameraData)
         };
         vk::WriteDescriptorSet write_descriptor_set = {
             .dstSet = descriptor_set_[i],
@@ -101,10 +100,10 @@ VkEngine::VkEngine()
             .descriptorType = vk::DescriptorType::eUniformBuffer,
             .pBufferInfo = &info,
         };
-        core_.device_.updateDescriptorSets(write_descriptor_set, {});
+        core_.device.updateDescriptorSets(write_descriptor_set, {});
     }
 
-    std::array color_attachments = {color_render_target_[0].image_format_};
+    std::array color_attachments = {color_render_target_[0].image_format};
 
     vk::PushConstantRange range{vk::ShaderStageFlagBits::eVertex, 0, sizeof(vk::DeviceAddress)};
     const vk::PipelineLayoutCreateInfo pipeline_layout_create_info = {
@@ -114,10 +113,10 @@ VkEngine::VkEngine()
         .pPushConstantRanges = &range,
     };
 
-    const auto pipeline_layout = (*core_.device_).createPipelineLayout(pipeline_layout_create_info);
-    pipeline_ = vk_types::Pipeline::CreateGraphicPipeline(core_.device_, shaderPath / "triangle_slang.spv",
+    const auto pipeline_layout = (*core_.device).createPipelineLayout(pipeline_layout_create_info);
+    pipeline_ = vk_types::Pipeline::createGraphicPipeline(core_.device, shaderPath / "triangle_slang.spv",
                                                           color_attachments,
-                                                          depth_render_target_[0].image_format_,
+                                                          depth_render_target_[0].image_format,
                                                           pipeline_layout);
 
     constexpr std::array mesh_array{
@@ -132,9 +131,10 @@ VkEngine::VkEngine()
         Vertex{.position = {-0.5f, -0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
         Vertex{.position = {0.5f, -0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
         Vertex{.position = {-0.5f, -0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-        Vertex{.position = {-0.5f, -0.25f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},    };
+        Vertex{.position = {-0.5f, -0.25f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
+    };
 
-    mesh.vertex_buffer = vk_types::TypedBuffer<Vertex>{
+    mesh_.vertex_buffer = vk_types::TypedBuffer<Vertex>{
         core_.vma_allocator.vma_allocator,
         mesh_array.size(),
         vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer |
@@ -142,7 +142,7 @@ VkEngine::VkEngine()
         VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
         VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT
     };
-    mesh.vertex_buffer_address = core_.device_.getBufferAddress({.buffer = mesh.vertex_buffer.buffer_});
+    mesh_.vertex_buffer_address = core_.device.getBufferAddress({.buffer = mesh_.vertex_buffer.buffer});
 
     const vk_types::TypedBuffer<Vertex> staging{
         core_.vma_allocator.vma_allocator,
@@ -155,14 +155,17 @@ VkEngine::VkEngine()
 
     staging.update(mesh_array);
 
-    vk::CommandBufferAllocateInfo cmAI{
+    const vk::CommandBufferAllocateInfo command_buffer_allocate_info{
         .commandPool = core_.graphics_command_pool,
         .level = vk::CommandBufferLevel::ePrimary,
         .commandBufferCount = 1
     };
-    vk::raii::CommandBuffer command_buffer = std::move(core_.device_.allocateCommandBuffers(cmAI).front());
+    const vk::raii::CommandBuffer command_buffer = std::move(
+        core_.device.allocateCommandBuffers(command_buffer_allocate_info).front());
     command_buffer.begin({});
-    command_buffer.copyBuffer(staging.buffer_, mesh.vertex_buffer.buffer_, vk::BufferCopy{.srcOffset = 0, .dstOffset = 0, .size = mesh_array.size() * sizeof(Vertex)});
+    command_buffer.copyBuffer(staging.buffer, mesh_.vertex_buffer.buffer, vk::BufferCopy{
+                                  .srcOffset = 0, .dstOffset = 0, .size = mesh_array.size() * sizeof(Vertex)
+                              });
     command_buffer.end();
     const vk::SubmitInfo submit_info = {
         .commandBufferCount = 1,
@@ -170,7 +173,7 @@ VkEngine::VkEngine()
     };
 
     core_.graphics_queue.submit(submit_info);
-    core_.device_.waitIdle();
+    core_.device.waitIdle();
 
     is_initialized = true;
 }
@@ -184,7 +187,7 @@ void VkEngine::run()
         update();
         draw();
     }
-    core_.device_.waitIdle();
+    core_.device.waitIdle();
 }
 
 void VkEngine::update() const
@@ -196,8 +199,8 @@ void VkEngine::update() const
     CameraData camera_data{};
     camera_data.view_matrix = glm::lookAt(glm::vec3{2.0f * glm::sin(time), 2.0f * glm::cos(time), 0.0f},
                                           glm::vec3{0.0f, 0.0f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
-    camera_data.SetProjection(glm::radians(30.0f),
-                              swapchain_.GetAspectRatio<float>(),
+    camera_data.setProjection(glm::radians(30.0f),
+                              swapchain_.getAspectRatio<float>(),
                               0.1f);
 
     view_proj_uniform_[in_flight_index_].update(&camera_data, sizeof(camera_data));
@@ -205,13 +208,13 @@ void VkEngine::update() const
 
 void VkEngine::draw()
 {
-    if (vk::Result::eSuccess != core_.device_.waitForFences(*in_flight_fences_[in_flight_index_], vk::True,
-                                                            -1))
+    if (vk::Result::eSuccess != core_.device.waitForFences(*in_flight_fences_[in_flight_index_], vk::True,
+                                                           -1))
         throw std::runtime_error("Error while waiting for fence !");
 
-    core_.device_.resetFences(*in_flight_fences_[in_flight_index_]);
+    core_.device.resetFences(*in_flight_fences_[in_flight_index_]);
 
-    auto [result, image_index] = swapchain_.Acquire();
+    auto [result, image_index] = swapchain_.acquire();
     if (vk::Result::eErrorOutOfDateKHR == result)
     {
         swapchain_.recreate(core_, window_system_);
@@ -243,7 +246,7 @@ void VkEngine::draw()
 
         constexpr vk::ClearValue clear_color = vk::ClearColorValue{0.5f, 0.5f, 0.5f, 1.0f};
         vk::RenderingAttachmentInfo attachment_info = {
-            .imageView = color_render_target_[in_flight_index_].image_view_,
+            .imageView = color_render_target_[in_flight_index_].image_view,
             .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
             .loadOp = vk::AttachmentLoadOp::eClear,
             .storeOp = vk::AttachmentStoreOp::eStore,
@@ -251,7 +254,7 @@ void VkEngine::draw()
         };
 
         vk::RenderingAttachmentInfo depth_attachment = {
-            .imageView = depth_render_target_[in_flight_index_].image_view_,
+            .imageView = depth_render_target_[in_flight_index_].image_view,
             .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
             .loadOp = vk::AttachmentLoadOp::eClear,
             .storeOp = vk::AttachmentStoreOp::eStore,
@@ -285,7 +288,7 @@ void VkEngine::draw()
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.getLayout(), 0,
                                           descriptor_set_[in_flight_index_], nullptr);
         command_buffer.pushConstants<vk::DeviceAddress>(pipeline_.getLayout(), vk::ShaderStageFlagBits::eVertex, 0,
-                                                        mesh.vertex_buffer_address);
+                                                        mesh_.vertex_buffer_address);
         command_buffer.draw(12, 1, 0, 0);
         command_buffer.endRendering();
 
@@ -316,7 +319,7 @@ void VkEngine::draw()
 
     constexpr vk::PipelineStageFlags wait_destination_stage_mask{vk::PipelineStageFlagBits::eColorAttachmentOutput};
 
-    std::array wait_semaphore = {swapchain_.GetCurrentSemaphore()};
+    std::array wait_semaphore = {swapchain_.getCurrentSemaphore()};
     const vk::SubmitInfo submit_info = {
         .waitSemaphoreCount = wait_semaphore.size(),
         .pWaitSemaphores = wait_semaphore.data(),
@@ -329,7 +332,7 @@ void VkEngine::draw()
 
     core_.graphics_queue.submit(submit_info, in_flight_fences_[in_flight_index_]);
 
-    result = swapchain_.Present(core_.present_queue, image_index);
+    result = swapchain_.present(core_.present_queue, image_index);
     if (vk::Result::eErrorOutOfDateKHR == result || vk::Result::eSuboptimalKHR == result || window_system_.resized)
     {
         window_system_.resized = false;
@@ -339,7 +342,7 @@ void VkEngine::draw()
         for (size_t i = 0; i < FRAME_OVERLAP; i++)
         {
             color_render_target_.emplace_back(
-                core_.device_,
+                core_.device,
                 core_.vma_allocator.vma_allocator,
                 vk::Format::eR16G16B16A16Sfloat,
                 swapchain_.extent,
@@ -353,7 +356,7 @@ void VkEngine::draw()
         for (size_t i = 0; i < FRAME_OVERLAP; i++)
         {
             depth_render_target_.emplace_back(
-                core_.device_,
+                core_.device,
                 core_.vma_allocator.vma_allocator,
                 vk::Format::eD32Sfloat,
                 swapchain_.extent,

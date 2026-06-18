@@ -4,11 +4,15 @@
 
 #include "engine/vk_engine.hh"
 
-int main(int argc, char *argv[]) {
-    try {
+int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[])
+{
+    try
+    {
         vk_tutorial::VkEngine app{};
         app.run();
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception& e)
+    {
         std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }

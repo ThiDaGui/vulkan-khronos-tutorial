@@ -8,7 +8,7 @@ namespace vk_tutorial:: vk_types
 {
 class DescriptorAllocator final : NonCopyable
 {
-    vk::raii::DescriptorPool pool{nullptr};
+    vk::raii::DescriptorPool pool_{nullptr};
 
 public:
     struct DescriptorEntry
@@ -33,10 +33,10 @@ public:
 
     void reset() const;
 
-    vk::DescriptorSet allocate(const vk::raii::Device& device, vk::DescriptorSetLayout layout) const;
+    [[nodiscard]] vk::DescriptorSet allocate(const vk::raii::Device& device, vk::DescriptorSetLayout layout) const;
 
-    std::vector<vk::raii::DescriptorSet> allocate(const vk::raii::Device& device,
-                                                  vk::DescriptorSetLayout layout,
-                                                  uint32_t count) const;
+    [[nodiscard]] std::vector<vk::raii::DescriptorSet> allocate(const vk::raii::Device& device,
+                                                                vk::DescriptorSetLayout layout,
+                                                                uint32_t count) const;
 };
 } // vk_tutorial::vk_types

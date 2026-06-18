@@ -10,11 +10,11 @@ namespace vk_tutorial::vk_types
 class Buffer : NonCopyable
 {
 public:
-    vk::Buffer buffer_{};
-    VmaAllocation buffer_memory_{};
-    void* buffer_mapped_{nullptr};
-    VmaAllocator vma_allocator_{};
-    size_t buffer_size_;
+    vk::Buffer buffer{};
+    VmaAllocation buffer_memory{};
+    void* buffer_mapped{nullptr};
+    VmaAllocator vma_allocator{};
+    size_t buffer_size{};
 
     Buffer() = default;
 

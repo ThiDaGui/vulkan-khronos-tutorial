@@ -19,7 +19,7 @@ struct CameraData
     glm::mat4 view_matrix;
     glm::mat4 projection_matrix;
 
-    void SetProjection(const float fov_y, const float aspect, const float near)
+    void setProjection(const float fov_y, const float aspect, const float near)
     {
         const float tan_half_fov_y = 1.0f / std::tan(0.5f * fov_y);
         projection_matrix = {0.0f};
@@ -74,7 +74,7 @@ private:
     vk::raii::DescriptorSetLayout descriptor_set_layout_{nullptr};
 
     std::array<vk_types::Buffer, FRAME_OVERLAP> view_proj_uniform_{};
-    Mesh mesh{};
+    Mesh mesh_{};
 
     vk_types::Pipeline pipeline_{nullptr, nullptr};
 

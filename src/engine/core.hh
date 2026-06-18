@@ -10,15 +10,15 @@ namespace vk_tutorial
 {
 struct Core
 {
-    vk::raii::Context context_{};
+    vk::raii::Context context{};
 
-    vk::raii::Instance instance_{nullptr};
-    vk::raii::DebugUtilsMessengerEXT debug_messenger_{nullptr};
-    vk::raii::PhysicalDevice physical_device_{nullptr};
-    vk::raii::Device device_{nullptr};
+    vk::raii::Instance instance{nullptr};
+    vk::raii::DebugUtilsMessengerEXT debug_messenger{nullptr};
+    vk::raii::PhysicalDevice physical_device{nullptr};
+    vk::raii::Device device{nullptr};
     vk_types::MemAllocator vma_allocator{};
 
-    vk::raii::SurfaceKHR surface_{nullptr};
+    vk::raii::SurfaceKHR surface{nullptr};
 
     RequiredQueueFamilyIndices queue_family_indices{};
     vk::raii::Queue graphics_queue{nullptr};

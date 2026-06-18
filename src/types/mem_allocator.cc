@@ -4,7 +4,6 @@
 
 namespace vk_tutorial::vk_types
 {
-
 MemAllocator::MemAllocator(const VmaAllocatorCreateInfo* create_info)
 {
     vmaCreateAllocator(create_info, &vma_allocator);
@@ -14,6 +13,7 @@ MemAllocator::MemAllocator(MemAllocator&& other) noexcept
 {
     swap(other);
 }
+
 MemAllocator& MemAllocator::operator=(MemAllocator&& other) noexcept
 {
     swap(other);

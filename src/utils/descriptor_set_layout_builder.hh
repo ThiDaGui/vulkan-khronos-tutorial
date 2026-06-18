@@ -17,12 +17,12 @@ namespace vk_tutorial
 {
 class DescriptorSetLayoutBuilder
 {
-    std::vector<vk::DescriptorSetLayoutBinding> bindings{};
+    std::vector<vk::DescriptorSetLayoutBinding> bindings_{};
 
 public:
-    DescriptorSetLayoutBuilder& AddBinding(uint32_t binding, vk::DescriptorType type, uint32_t count,
+    DescriptorSetLayoutBuilder& addBinding(uint32_t binding, vk::DescriptorType type, uint32_t count,
                                            vk::ShaderStageFlags stages);
 
-    [[nodiscard]] vk::raii::DescriptorSetLayout Build(const vk::raii::Device& device) const;
+    [[nodiscard]] vk::raii::DescriptorSetLayout build(const vk::raii::Device& device) const;
 };
 }

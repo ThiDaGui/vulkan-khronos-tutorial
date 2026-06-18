@@ -2,13 +2,13 @@
 
 namespace vk_tutorial::vk_types
 {
-Buffer::Buffer(const VmaAllocator vma_allocator,
+Buffer::Buffer(VmaAllocator vma_allocator,
                const vk::DeviceSize buffer_size,
                const vk::BufferUsageFlags buffer_usage,
                const VmaMemoryUsage memory_usage,
                const VmaAllocationCreateFlags allocation_flags)
-    : vma_allocator_{vma_allocator}
-    , buffer_size_{buffer_size}
+    : vma_allocator{vma_allocator}
+    , buffer_size{buffer_size}
 {
     vk::BufferCreateInfo buffer_create_info = {
         .size = buffer_size,
@@ -22,26 +22,26 @@ Buffer::Buffer(const VmaAllocator vma_allocator,
     };
 
     VmaAllocationInfo allocation_info{};
-    VkBuffer buffer;
-    if (VK_SUCCESS != vmaCreateBuffer(vma_allocator_, buffer_create_info, &allocation_create_info, &buffer,
-                                      &buffer_memory_, &allocation_info))
+    VkBuffer vk_buffer;
+    if (VK_SUCCESS != vmaCreateBuffer(vma_allocator, buffer_create_info, &allocation_create_info, &vk_buffer,
+                                      &buffer_memory, &allocation_info))
         throw std::runtime_error("failed to create buffer!");
 
-    buffer_ = buffer;
+    buffer = vk_buffer;
 
-    VkMemoryPropertyFlags memPropFlags;
-    vmaGetAllocationMemoryProperties(vma_allocator_, buffer_memory_, &memPropFlags);
+    VkMemoryPropertyFlags mem_prop_flags;
+    vmaGetAllocationMemoryProperties(vma_allocator, buffer_memory, &mem_prop_flags);
 
-    if (memPropFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
-        buffer_mapped_ = allocation_info.pMappedData;
+    if (mem_prop_flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+        buffer_mapped = allocation_info.pMappedData;
 }
 
 Buffer::~Buffer()
 {
-    if (!vma_allocator_)
+    if (!vma_allocator)
         return;
 
-    vmaDestroyBuffer(vma_allocator_, buffer_, buffer_memory_);
+    vmaDestroyBuffer(vma_allocator, buffer, buffer_memory);
 }
 
 Buffer::Buffer(Buffer&& rhs) noexcept
@@ -57,20 +57,20 @@ Buffer& Buffer::operator=(Buffer&& rhs) noexcept
 
 void Buffer::swap(Buffer& rhs) noexcept
 {
-    std::swap(buffer_, rhs.buffer_);
-    std::swap(buffer_memory_, rhs.buffer_memory_);
-    std::swap(buffer_mapped_, rhs.buffer_mapped_);
-    std::swap(vma_allocator_, rhs.vma_allocator_);
-    std::swap(buffer_size_, rhs.buffer_size_);
+    std::swap(buffer, rhs.buffer);
+    std::swap(buffer_memory, rhs.buffer_memory);
+    std::swap(buffer_mapped, rhs.buffer_mapped);
+    std::swap(vma_allocator, rhs.vma_allocator);
+    std::swap(buffer_size, rhs.buffer_size);
 }
 
 void Buffer::update(const void* data, const size_t size) const
 {
-    if (!buffer_mapped_)
+    if (!buffer_mapped)
         throw std::runtime_error("Failed to update buffer : buffer is not host visible");
-    if (size > buffer_size_)
+    if (size > buffer_size)
         throw std::runtime_error("Failed to update buffer : size > buffer_size");
-    memcpy(buffer_mapped_, data, size);
-    vmaFlushAllocation(vma_allocator_, buffer_memory_, 0, size);
+    memcpy(buffer_mapped, data, size);
+    vmaFlushAllocation(vma_allocator, buffer_memory, 0, size);
 }
 }
