@@ -5,6 +5,7 @@
 #include "config.hh"
 #include "types/buffer.hh"
 #include "utils/descriptor_set_layout_builder.hh"
+#include "types/Primitive.hh"
 
 namespace vk_tutorial
 {
@@ -120,60 +121,21 @@ VkEngine::VkEngine()
                                                           pipeline_layout);
 
     constexpr std::array mesh_array{
-        Vertex{.position = {0.5f, 0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-        Vertex{.position = {0.5f, 0.25f, 0.5f}, .color = {1.0f, 1.0f, 0.0f}},
-        Vertex{.position = {-0.5f, 0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-        Vertex{.position = {0.5f, 0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-        Vertex{.position = {-0.5f, 0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-        Vertex{.position = {-0.5f, 0.25f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
-        Vertex{.position = {0.5f, -0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-        Vertex{.position = {0.5f, -0.25f, 0.5f}, .color = {1.0f, 1.0f, 0.0f}},
-        Vertex{.position = {-0.5f, -0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-        Vertex{.position = {0.5f, -0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
-        Vertex{.position = {-0.5f, -0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
-        Vertex{.position = {-0.5f, -0.25f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
+        vk_types::Vertex{.position = {0.5f, 0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        vk_types::Vertex{.position = {0.5f, 0.25f, 0.5f}, .color = {1.0f, 1.0f, 0.0f}},
+        vk_types::Vertex{.position = {-0.5f, 0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        vk_types::Vertex{.position = {0.5f, 0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        vk_types::Vertex{.position = {-0.5f, 0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        vk_types::Vertex{.position = {-0.5f, 0.25f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
+        vk_types::Vertex{.position = {0.5f, -0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        vk_types::Vertex{.position = {0.5f, -0.25f, 0.5f}, .color = {1.0f, 1.0f, 0.0f}},
+        vk_types::Vertex{.position = {-0.5f, -0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        vk_types::Vertex{.position = {0.5f, -0.25f, -0.5f}, .color = {1.0f, 0.0f, 0.0f}},
+        vk_types::Vertex{.position = {-0.5f, -0.25f, 0.5f}, .color = {0.0f, 1.0f, 0.0f}},
+        vk_types::Vertex{.position = {-0.5f, -0.25f, -0.5f}, .color = {0.0f, 0.0f, 0.0f}},
     };
 
-    mesh_.vertex_buffer = vk_types::TypedBuffer<Vertex>{
-        core_.vma_allocator.vma_allocator,
-        mesh_array.size(),
-        vk::BufferUsageFlagBits::eShaderDeviceAddress | vk::BufferUsageFlagBits::eStorageBuffer |
-        vk::BufferUsageFlagBits::eTransferDst,
-        VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-        VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT
-    };
-    mesh_.vertex_buffer_address = core_.device.getBufferAddress({.buffer = mesh_.vertex_buffer.buffer});
-
-    const vk_types::TypedBuffer<Vertex> staging{
-        core_.vma_allocator.vma_allocator,
-        mesh_array.size(),
-        vk::BufferUsageFlagBits::eTransferSrc,
-        VMA_MEMORY_USAGE_AUTO,
-        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
-    };
-
-
-    staging.update(mesh_array);
-
-    const vk::CommandBufferAllocateInfo command_buffer_allocate_info{
-        .commandPool = core_.graphics_command_pool,
-        .level = vk::CommandBufferLevel::ePrimary,
-        .commandBufferCount = 1
-    };
-    const vk::raii::CommandBuffer command_buffer = std::move(
-        core_.device.allocateCommandBuffers(command_buffer_allocate_info).front());
-    command_buffer.begin({});
-    command_buffer.copyBuffer(staging.buffer, mesh_.vertex_buffer.buffer, vk::BufferCopy{
-                                  .srcOffset = 0, .dstOffset = 0, .size = mesh_array.size() * sizeof(Vertex)
-                              });
-    command_buffer.end();
-    const vk::SubmitInfo submit_info = {
-        .commandBufferCount = 1,
-        .pCommandBuffers = &*command_buffer,
-    };
-
-    core_.graphics_queue.submit(submit_info);
-    core_.device.waitIdle();
+    primitive_.init(core_, mesh_array);
 
     is_initialized = true;
 }
@@ -288,7 +250,7 @@ void VkEngine::draw()
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_.getLayout(), 0,
                                           descriptor_set_[in_flight_index_], nullptr);
         command_buffer.pushConstants<vk::DeviceAddress>(pipeline_.getLayout(), vk::ShaderStageFlagBits::eVertex, 0,
-                                                        mesh_.vertex_buffer_address);
+                                                        primitive_.vertex_buffer_address);
         command_buffer.draw(12, 1, 0, 0);
         command_buffer.endRendering();
 

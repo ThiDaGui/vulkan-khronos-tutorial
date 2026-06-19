@@ -25,6 +25,7 @@ struct Core
     vk::raii::Queue present_queue{nullptr};
 
     vk::raii::CommandPool graphics_command_pool{nullptr};
+    vk::raii::CommandBuffer immediate_command_buffer{nullptr};
 
     void init(std::span<const char* const> instance_extensions,
               std::span<const char* const> instance_layers,

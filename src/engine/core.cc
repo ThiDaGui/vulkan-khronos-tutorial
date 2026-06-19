@@ -237,5 +237,16 @@ void Core::init(std::span<const char* const> instance_extensions,
         };
         graphics_command_pool = vk::raii::CommandPool{device, graphics_command_pool_create_info};
     }
+
+    //Immediate command buffer
+    {
+        const vk::CommandBufferAllocateInfo command_buffer_allocate_info{
+            .commandPool = graphics_command_pool,
+            .level = vk::CommandBufferLevel::ePrimary,
+            .commandBufferCount = 1
+        };
+        immediate_command_buffer = std::move(
+            device.allocateCommandBuffers(command_buffer_allocate_info).front());
+    }
 }
 }

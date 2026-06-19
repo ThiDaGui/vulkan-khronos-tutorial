@@ -54,6 +54,7 @@ add_executable(drawTriangleCpp
         src/utils/pipeline_builder.cc
         src/utils/descriptor_set_layout_builder.cc
         src/types/buffer.cc
+        src/types/Primitive.cc
 )
 
 target_include_directories(drawTriangleCpp PRIVATE
@@ -83,6 +84,7 @@ target_sources(drawTriangleCpp
             src/types/descriptor_allocator.hh
             src/types/buffer.hh
             src/types/typed_buffer.hh
+            src/types/Primitive.hh
 
             src/utils/types.hh
             src/utils/pipeline_builder.hh
