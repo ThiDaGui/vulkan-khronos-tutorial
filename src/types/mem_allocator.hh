@@ -1,7 +1,8 @@
 #pragma once
 
+#include <vk_mem_alloc.h>
+
 #include "utils/types.hh"
-#include "vk_mem_alloc/vma_usage.hh"
 
 namespace vk_tutorial::vk_types
 {

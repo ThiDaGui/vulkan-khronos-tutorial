@@ -23,6 +23,15 @@
     },
     {
       "name": "shader-slang"
+    },
+    {
+      "name": "fastgltf"
+    },
+    {
+      "name": "imgui"
+    },
+    {
+      "name": "stb"
     }
   ]
 }

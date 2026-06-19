@@ -2,6 +2,7 @@
 #pragma clang diagnostic ignored "-Wnullability-completeness"
 
 #define VMA_IMPLEMENTATION
-#include "vma_usage.hh"
+// ReSharper disable once CppUnusedIncludeDirective
+#include <vk_mem_alloc.h>
 
 #pragma clang diagnostic pop

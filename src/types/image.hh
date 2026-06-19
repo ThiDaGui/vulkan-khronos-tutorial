@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vk_mem_alloc/vma_usage.hh>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan_raii.hpp>
 
 #include "utils/types.hh"

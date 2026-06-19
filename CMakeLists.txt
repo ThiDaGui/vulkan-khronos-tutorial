@@ -4,6 +4,10 @@ project(vulkan_khronos_tutorial LANGUAGES CXX)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(slang CONFIG REQUIRED)
+find_package(fastgltf CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
+find_package(Stb REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 set(DATA_DIR ${CMAKE_SOURCE_DIR}/data)
 set(SHADER_SOURCE_DIR ${CMAKE_SOURCE_DIR}/shaders)
@@ -29,34 +33,6 @@ configure_file(config.hh.in config.hh @ONLY)
 
 add_slang_shader(triangle_slang SOURCES ${SHADER_SOURCE_DIR}/triangle.slang)
 
-add_library(Imgui
-        external/imgui/imgui.cpp
-        external/imgui/imgui_demo.cpp
-        external/imgui/imgui_draw.cpp
-        external/imgui/imgui_tables.cpp
-        external/imgui/imgui_widgets.cpp
-
-        external/imgui/backends/imgui_impl_glfw.cpp
-        external/imgui/backends/imgui_impl_vulkan.cpp
-)
-
-target_sources(Imgui
-    PUBLIC
-        FILE_SET public_headers
-        TYPE HEADERS
-        BASE_DIRS external/imgui
-        FILES
-            external/imgui/imgui.h
-            external/imgui/backends/imgui_impl_vulkan.h
-            external/imgui/backends/imgui_impl_glfw.h
-)
-
-target_include_directories(Imgui
-        PRIVATE "${Vulkan_INCLUDE_DIR}"
-)
-
-target_link_libraries(Imgui PRIVATE glfw)
-
 add_executable(drawTriangleCpp
         src/main.cpp
 
@@ -80,6 +56,10 @@ add_executable(drawTriangleCpp
         src/types/buffer.cc
 )
 
+target_include_directories(drawTriangleCpp PRIVATE
+        ${Stb_INCLUDE_DIR}
+)
+
 target_sources(drawTriangleCpp
     PRIVATE
         FILE_SET internal_headers
@@ -89,10 +69,7 @@ target_sources(drawTriangleCpp
             external
             src
         FILES
-            external/stb_image/stb_image.h
             external/tiny_obj_loader/tiny_obj_loader.h
-            external/vk_mem_alloc/vk_mem_alloc.h
-            external/vk_mem_alloc/vma_usage.hh
 
             src/engine/vk_engine.hh
             src/engine/required_queue_family_indices.hh
@@ -124,8 +101,10 @@ target_compile_definitions(drawTriangleCpp PUBLIC
 )
 target_link_libraries(drawTriangleCpp PRIVATE
         Vulkan::Vulkan
+        GPUOpen::VulkanMemoryAllocator
         glfw
-        Imgui
+        fastgltf::fastgltf
+        imgui::imgui
 )
 
 add_dependencies(drawTriangleCpp triangle_slang)

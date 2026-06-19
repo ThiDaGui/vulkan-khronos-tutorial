@@ -1,9 +1,9 @@
 #pragma once
 
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
 #include "utils/types.hh"
-#include "vk_mem_alloc/vk_mem_alloc.h"
 
 namespace vk_tutorial::vk_types
 {
